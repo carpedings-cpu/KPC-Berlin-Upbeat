@@ -123,7 +123,7 @@ select.fs option{background:var(--anthrazit);}
   display:flex;align-items:center;justify-content:center;}
 
 /* FAB */
-.fab{position:fixed;bottom:18px;right:16px;background:var(--braun);color:#fff;
+.fab{background:var(--braun);color:#fff;
   border:none;border-radius:28px;padding:11px 18px;font-size:13px;font-weight:700;
   box-shadow:0 4px 16px rgba(107,80,64,.4);cursor:pointer;
   display:flex;align-items:center;gap:7px;z-index:50;font-family:Arial Narrow,Arial,sans-serif;
@@ -161,9 +161,10 @@ select.fs option{background:var(--anthrazit);}
   <img id="lbi" src="" alt="">
 </div>
 
-<div style="position:fixed;bottom:18px;right:16px;display:flex;flex-direction:column;gap:8px;z-index:50">
-  <button class="fab" style="background:#2d2926" onclick="expKunde()">&#128196; Kundenbericht</button>
-  <button class="fab" onclick="exp()">&#128203; Intern exportieren</button>
+<div style="position:fixed;bottom:18px;left:0;right:0;display:flex;justify-content:center;gap:10px;z-index:50;padding:0 12px">
+  <button class="fab" style="background:#2d2926;flex:1;justify-content:center;max-width:180px" onclick="expKunde()">&#128196; Kundenbericht</button>
+  <button class="fab" style="flex:1;justify-content:center;max-width:180px" onclick="exp()">&#128203; Intern exportieren</button>
+  <button class="fab" style="background:#8b2222;flex:0;padding:11px 14px" onclick="clearState()" title="Alle Einträge löschen">&#128465;</button>
 </div>
 <input type="file" id="fi" accept="image/*" capture="environment" style="display:none">
 
@@ -235,7 +236,7 @@ function buildPanels(){
     <button class="fbtn" id="FB${id}" onclick="trf('${item.pos}')">&#128247; Foto</button>
     <div class="fgrid" id="FG${id}"></div>
   </div>
-  <textarea class="anm" rows="1" placeholder="Anmerkung &#8230;" oninput="autoR(this);gs('${item.pos}').note=this.value;rc('${item.pos}')"></textarea>
+  <textarea class="anm" rows="1" placeholder="Anmerkung &#8230;" oninput="autoR(this);gs('${item.pos}').note=this.value;rc('${item.pos}')" onchange="savePos('${item.pos}')"></textarea>
 </div>`;
       });
       div.innerHTML=`<div class="bhdr" onclick="tgB(this)">
@@ -267,7 +268,7 @@ function tc(pos,f){
   const id=sp(pos);
   const el=document.getElementById('K'+f+id);
   if(el){el.classList.toggle('on',s[f]);el.querySelector('.cki').innerHTML=s[f]?'&#10003;':'&#9675;';}
-  rc(pos);upStats();
+  rc(pos);upStats();savePos(pos);
 }
 
 function rc(pos){
@@ -290,12 +291,33 @@ function updProg(pos){
 
 // FOTO
 function trf(pos){FPOS=pos;const fi=document.getElementById('fi');fi.value='';fi.click();}
-document.getElementById('fi').addEventListener('change',function(e){
+document.getElementById('fi').addEventListener('change',async function(e){
   const file=e.target.files[0];
   if(!file||!FPOS)return;
-  const r=new FileReader();
-  r.onload=ev=>{gs(FPOS).fotos.push(ev.target.result);updFG(FPOS);rc(FPOS);upStats();};
-  r.readAsDataURL(file);
+  showLoader('Foto wird hochgeladen...');
+  try {
+    // Upload to Supabase Storage
+    const fname = FPOS.replace(/\./g,'_') + '_' + Date.now() + '.jpg';
+    const res = await fetch(SB_URL+'/storage/v1/object/fotos/'+fname, {
+      method:'POST',
+      headers:{'apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY,'Content-Type':file.type},
+      body:file
+    });
+    if(!res.ok) throw new Error(await res.text());
+    const publicUrl = SB_URL+'/storage/v1/object/public/fotos/'+fname;
+    gs(FPOS).fotos.push(publicUrl);
+    // Save foto URLs to database
+    await saveFotos(FPOS);
+    updFG(FPOS);rc(FPOS);upStats();
+    hideLoader();
+  } catch(e) {
+    hideLoader();
+    // Fallback: save locally
+    const r=new FileReader();
+    r.onload=ev=>{gs(FPOS).fotos.push(ev.target.result);updFG(FPOS);rc(FPOS);upStats();};
+    r.readAsDataURL(file);
+    console.warn('Supabase Upload fehlgeschlagen, lokal gespeichert:', e);
+  }
 });
 function updFG(pos){
   const id=sp(pos);const s=gs(pos);
@@ -304,7 +326,7 @@ function updFG(pos){
   if(g)g.innerHTML=s.fotos.map((src,i)=>`<div class="fth" onclick="olb('${pos}',${i})"><img src="${src}"><button class="fdel" onclick="event.stopPropagation();df('${pos}',${i})">&#10005;</button></div>`).join('');
   if(b)b.innerHTML='&#128247; Foto'+(s.fotos.length?` <span class="fcnt">${s.fotos.length}</span>`:'');
 }
-function df(pos,i){gs(pos).fotos.splice(i,1);updFG(pos);rc(pos);upStats();}
+function df(pos,i){gs(pos).fotos.splice(i,1);updFG(pos);rc(pos);upStats();saveStateWithFotos();}
 
 // LIGHTBOX
 function olb(pos,i){document.getElementById('lbi').src=gs(pos).fotos[i];document.getElementById('lb').classList.add('on');}
@@ -332,6 +354,35 @@ function applyF(){
   });
 }
 document.getElementById('srch').addEventListener('input',applyF);
+
+
+function restoreUI() {
+  Object.keys(ST).forEach(pos => {
+    const s = ST[pos];
+    const id = sp(pos);
+    // Restore checkboxes
+    const fields = ['g','m','a','ib','ew'];
+    fields.forEach(f => {
+      const el = document.getElementById('K'+f+id);
+      if(el && s[f]) {
+        el.classList.add('on');
+        el.querySelector('.ci').innerHTML = '&#10003;';
+      }
+    });
+    // Restore card color
+    const card = document.getElementById('C'+id);
+    const st = ist(pos);
+    if(card && st !== 'open') card.className = 'card ' + st;
+    // Restore note
+    const anm = card ? card.querySelector('.anm') : null;
+    if(anm && s.note) { anm.value = s.note; autoR(anm); }
+    // Restore fotos
+    if(s.fotos && s.fotos.length) updFG(pos);
+    // Restore progress
+    updProg(pos);
+  });
+  upStats();
+}
 
 function autoR(el){el.style.height='auto';el.style.height=el.scrollHeight+'px';}
 
@@ -471,10 +522,136 @@ td{border-bottom:1px solid #eeecea;vertical-align:middle;}
   w.document.close();
 }
 
+
+// ── SUPABASE KONFIGURATION ──
+const SB_URL = 'https://prpxpfgauziuszkiirlq.supabase.co';
+const SB_KEY = 'sb_publishable_P4jEe_-3kgn_TAYg_LhS3w_W4PJfuQN';
+
+async function sbFetch(method, path, body) {
+  const res = await fetch(SB_URL + '/rest/v1/' + path, {
+    method,
+    headers: {
+      'apikey': SB_KEY,
+      'Authorization': 'Bearer ' + SB_KEY,
+      'Content-Type': 'application/json',
+      'Prefer': method === 'POST' ? 'resolution=merge-duplicates' : ''
+    },
+    body: body ? JSON.stringify(body) : undefined
+  });
+  if (!res.ok) throw new Error(await res.text());
+  return res.status === 204 ? null : res.json();
+}
+
+async function savePos(pos) {
+  const s = gs(pos);
+  try {
+    await sbFetch('POST', 'positionen', {
+      pos, g:s.g, m:s.m, a:s.a, ib:s.ib, ew:s.ew,
+      note:s.note, fotos:JSON.stringify(s.fotos),
+      updated_at: new Date().toISOString()
+    });
+  } catch(e) { console.warn('Speichern fehlgeschlagen:', e); }
+}
+
+async function saveFotos(pos) {
+  const s = gs(pos);
+  try {
+    await sbFetch('POST', 'positionen', {
+      pos, g:s.g, m:s.m, a:s.a, ib:s.ib, ew:s.ew,
+      note:s.note, fotos:JSON.stringify(s.fotos),
+      updated_at: new Date().toISOString()
+    });
+  } catch(e) { console.warn('Foto-URLs speichern fehlgeschlagen:', e); }
+}
+
+function saveState() { /* no-op, saving happens per position */ }
+function saveStateWithFotos() { /* no-op, saving happens per position */ }
+
+async function loadState() {
+  try {
+    showLoader('Daten werden geladen...');
+    const data = await sbFetch('GET', 'positionen?select=*');
+    if (data) {
+      data.forEach(row => {
+        let fotos = [];
+        try { fotos = row.fotos ? JSON.parse(row.fotos) : []; } catch(e) {}
+        ST[row.pos] = {
+          g: row.g||false, m: row.m||false, a: row.a||false,
+          ib: row.ib||false, ew: row.ew||false,
+          note: row.note||'', fotos: fotos
+        };
+      });
+    }
+    hideLoader();
+  } catch(e) {
+    hideLoader();
+    console.warn('Laden fehlgeschlagen:', e);
+  }
+}
+
+function showLoader(msg) {
+  let el = document.getElementById('loader');
+  if (!el) {
+    el = document.createElement('div');
+    el.id = 'loader';
+    el.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(45,41,38,0.7);z-index:9999;display:flex;align-items:center;justify-content:center;color:#c8a882;font-family:Arial,sans-serif;font-size:16px;font-weight:700;letter-spacing:1px;';
+    document.body.appendChild(el);
+  }
+  el.textContent = msg || 'Wird gespeichert...';
+  el.style.display = 'flex';
+}
+function hideLoader() {
+  const el = document.getElementById('loader');
+  if (el) el.style.display = 'none';
+}
+
+async function clearState() {
+  if(confirm('Alle Einträge wirklich löschen? Das kann nicht rückgängig gemacht werden.')) {
+    try {
+      await sbFetch('DELETE', 'positionen?pos=neq.null');
+      Object.keys(ST).forEach(k => delete ST[k]);
+      buildPanels();
+      upStats();
+    } catch(e) { alert('Fehler beim Löschen: ' + e.message); }
+  }
+}
+
+// Polling für Live-Updates (alle 30 Sekunden)
+setInterval(async () => {
+  try {
+    const data = await sbFetch('GET', 'positionen?select=*');
+    if (!data) return;
+    let changed = false;
+    data.forEach(row => {
+      const cur = ST[row.pos];
+      if (!cur || cur.g!==row.g || cur.m!==row.m || cur.a!==row.a ||
+          cur.ib!==row.ib || cur.ew!==row.ew || cur.note!==row.note) {
+        ST[row.pos] = { g:row.g||false, m:row.m||false, a:row.a||false,
+          ib:row.ib||false, ew:row.ew||false, note:row.note||'', fotos:cur?cur.fotos:[] };
+        changed = true;
+        // Update UI for this position
+        const id = row.pos.replace(/\./g,'_');
+        const fields = ['g','m','a','ib','ew'];
+        fields.forEach(f => {
+          const el = document.getElementById('K'+f+id);
+          if(el) { el.classList.toggle('on', ST[row.pos][f]); el.querySelector('.ci').innerHTML = ST[row.pos][f]?'&#10003;':'&#9675;'; }
+        });
+        const card = document.getElementById('C'+id);
+        const st = ist(row.pos);
+        if(card) card.className = 'card'+(st!=='open'?' '+st:'');
+        const anm = card ? card.querySelector('.anm') : null;
+        if(anm && anm !== document.activeElement) anm.value = ST[row.pos].note;
+        updProg(row.pos);
+      }
+    });
+    if(changed) upStats();
+  } catch(e) {}
+}, 30000);
+
 // INIT
 buildTabs();
 buildPanels();
-upStats();
+loadState().then(() => { restoreUI(); upStats(); });
 </script>
 </body>
 </html>
