@@ -173,6 +173,7 @@ const DATA = [{"pos":"01.","bez":"Untergeschoss","label":"UG","subsections":[{"p
 
 const ST={};
 const NOTE_TIMERS={};
+function sp(p){return p.replace(/\./g,'_');}
 let ACT=DATA[0].pos, FPOS=null;
 
 function gs(p){if(!ST[p])ST[p]={g:false,m:false,a:false,ib:false,ew:false,fotos:[],note:''};return ST[p];}
