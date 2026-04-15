@@ -164,7 +164,7 @@ select.fs option{background:var(--anthrazit);}
 <div style="position:fixed;bottom:18px;left:0;right:0;display:flex;justify-content:center;gap:10px;z-index:50;padding:0 12px">
   <button class="fab" style="background:#2d2926;flex:1;justify-content:center;max-width:180px" onclick="expKunde()">&#128196; Kundenbericht</button>
   <button class="fab" style="flex:1;justify-content:center;max-width:180px" onclick="exp()">&#128203; Intern exportieren</button>
-  <button class="fab" style="background:#8b2222;flex:0;padding:11px 14px" onclick="clearState()" title="Alle Einträge löschen">&#128465;</button>
+
 </div>
 <input type="file" id="fi" accept="image/*" capture="environment" style="display:none">
 
@@ -291,20 +291,48 @@ function updProg(pos){
 
 // FOTO
 function trf(pos){FPOS=pos;const fi=document.getElementById('fi');fi.value='';fi.click();}
+
+// Resize image helper
+function resizeImage(file, maxWidth) {
+  return new Promise((resolve) => {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const img = new Image();
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        let w = img.width, h = img.height;
+        if (w > maxWidth) { h = h * maxWidth / w; w = maxWidth; }
+        canvas.width = w; canvas.height = h;
+        canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+        canvas.toBlob((blob) => resolve(blob), 'image/jpeg', 0.85);
+      };
+      img.src = e.target.result;
+    };
+    reader.readAsDataURL(file);
+  });
+}
+
 document.getElementById('fi').addEventListener('change',async function(e){
   const file=e.target.files[0];
   if(!file||!FPOS)return;
   showLoader('Foto wird hochgeladen...');
   try {
-    // Upload to Supabase Storage
+    // Resize image before upload
+    const resized = await resizeImage(file, 1200);
     const fname = FPOS.replace(/\./g,'_') + '_' + Date.now() + '.jpg';
+    // Convert to blob with correct type
     const res = await fetch(SB_URL+'/storage/v1/object/fotos/'+fname, {
       method:'POST',
-      headers:{'apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY,'Content-Type':file.type},
-      body:file
+      headers:{
+        'apikey':SB_KEY,
+        'Authorization':'Bearer '+SB_KEY,
+        'Content-Type':'image/jpeg',
+        'x-upsert':'true'
+      },
+      body:resized
     });
     if(!res.ok) throw new Error(await res.text());
-    const publicUrl = SB_URL+'/storage/v1/object/public/fotos/'+fname;
+    const publicUrl = SB_URL+'/storage/v1/object/public/fotos/'+fname+'?t='+Date.now();
     gs(FPOS).fotos.push(publicUrl);
     // Save foto URLs to database
     await saveFotos(FPOS);
