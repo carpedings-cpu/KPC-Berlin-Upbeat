@@ -10,6 +10,7 @@
   --accent:#c8a882; --accent2:#9a9a9a; --white:#fff;
   --green:#3a7a3a; --gl:#e8f4e8; --yl:#fef9e7; --border:#d4cdc6;
   --r:6px;
+  --font:'Roboto Condensed',Arial Narrow,sans-serif;
 }
 *{box-sizing:border-box;margin:0;padding:0;}
 body{font-family:Arial Narrow,Arial,sans-serif;background:var(--bg);color:var(--anthrazit);font-size:14px;}
@@ -156,15 +157,18 @@ select.fs option{background:var(--anthrazit);}
 
 <main id="main"></main>
 
+    <div class="proto-body" id="protoBody"></div>
+  </div>
+</div>
 <div class="lb" id="lb">
   <button class="lbx" onclick="clb()">&#10005;</button>
   <img id="lbi" src="" alt="">
 </div>
 
 <div style="position:fixed;bottom:18px;left:0;right:0;display:flex;justify-content:center;gap:10px;z-index:50;padding:0 12px">
-  <button class="fab" style="background:#2d2926;flex:1;justify-content:center;max-width:180px" onclick="expKunde()">&#128196; Kundenbericht</button>
-  <button class="fab" style="flex:1;justify-content:center;max-width:180px" onclick="exp()">&#128203; Intern exportieren</button>
-
+  <button class="fab" style="background:#3a7a3a;flex:1;justify-content:center;max-width:160px" onclick="saveAll()">&#128190; Speichern</button>
+  <button class="fab" style="background:#2d2926;flex:1;justify-content:center;max-width:160px" onclick="expKunde()">&#128196; Kundenbericht</button>
+  
 </div>
 <input type="file" id="fi" accept="image/*" capture="environment" style="display:none">
 
@@ -174,6 +178,21 @@ const DATA = [{"pos":"01.","bez":"Untergeschoss","label":"UG","subsections":[{"p
 const ST={};
 const NOTE_TIMERS={};
 function sp(p){return p.replace(/\./g,'_');}
+
+// Save with debounce to prevent race conditions
+const SAVE_TIMERS={};
+function savePos(pos) {
+  if(SAVE_TIMERS[pos]) clearTimeout(SAVE_TIMERS[pos]);
+  SAVE_TIMERS[pos] = setTimeout(() => {
+    const s = gs(pos);
+    sbFetch('POST', 'positionen', {
+      pos, g:s.g, m:s.m, a:s.a, ib:s.ib, ew:s.ew,
+      note:s.note, fotos:JSON.stringify(s.fotos),
+      updated_at: new Date().toISOString()
+    }).catch(e => console.warn('Speichern fehlgeschlagen:', e));
+    delete SAVE_TIMERS[pos];
+  }, 400);
+}
 let ACT=DATA[0].pos, FPOS=null;
 
 function gs(p){if(!ST[p])ST[p]={g:false,m:false,a:false,ib:false,ew:false,fotos:[],note:''};return ST[p];}
@@ -199,6 +218,7 @@ function swTab(p){
   ACT=p;
   document.querySelectorAll('.tab').forEach(t=>t.classList.toggle('on',t.dataset.p===p));
   document.querySelectorAll('.panel').forEach(pn=>pn.classList.toggle('on',pn.dataset.p===p));
+  restoreUI();
   const at=document.querySelector('.tab.on');
   if(at)at.scrollIntoView({behavior:'smooth',block:'nearest',inline:'center'});
 }
@@ -417,33 +437,6 @@ function restoreUI() {
 function autoR(el){el.style.height='auto';el.style.height=el.scrollHeight+'px';}
 
 // EXPORT
-function exp(){
-  const now=new Date();
-  const d=now.toLocaleDateString('de-DE')+' '+now.toLocaleTimeString('de-DE',{hour:'2-digit',minute:'2-digit'});
-  // Internal full report
-  let txt='LEISTUNGSFESTSTELLUNG – BERLIN UPBEAT (INTERN)\nDatum: '+d+'\n'+'='.repeat(52)+'\n';
-  let tot=0,dn=0,pt=0;
-  DATA.forEach(sec=>{
-    let st='';
-    sec.subsections.forEach(sub=>{
-      let su='';
-      sub.items.forEach(item=>{
-        const s=gs(item.pos);const ist2=ist(item.pos);
-        if(ist2==='open')return;
-        tot++;if(ist2==='done')dn++;else pt++;
-        su+='  '+item.pos.padEnd(20)+item.bez.trim().substring(0,28).padEnd(29)+' G:'+(s.g?'✓':'–')+' M:'+(s.m?'✓':'–')+' A:'+(s.a?'✓':'–')+' IB:'+(s.ib?'✓':'–')+' EW:'+(s.ew?'✓':'–')+(s.fotos.length?' 📷'+s.fotos.length:'')+(s.note?' → '+s.note:'')+'\n';
-      });
-      if(su)st+='\n  ['+sub.pos+'] '+sub.bez+'\n'+su;
-    });
-    if(st)txt+='\n── '+sec.label+': '+sec.bez+' ──\n'+st;
-  });
-  txt+='\n'+'='.repeat(52)+'\nGesamt: '+dn+' vollst. | '+pt+' teilw. | '+tot+' bearb.\n';
-  const a=document.createElement('a');
-  a.href=URL.createObjectURL(new Blob([txt],{type:'text/plain'}));
-  a.download='LF_intern_BerlinUpbeat_'+now.toISOString().slice(0,10)+'.txt';
-  a.click();
-}
-
 function expKunde(){
   const now=new Date();
   const d=now.toLocaleDateString('de-DE');
@@ -558,13 +551,18 @@ const SB_URL = 'https://prpxpfgauziuszkiirlq.supabase.co';
 const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBycHhwZmdhdXppdXN6a2lpcmxxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzYxOTc0NjAsImV4cCI6MjA5MTc3MzQ2MH0.45B3RyojvOcZblLkcd9LwIzYtD338m3uHXJ6g5WrCu0';
 
 async function sbFetch(method, path, body) {
-  const res = await fetch(SB_URL + '/rest/v1/' + path, {
+  // For POST (upsert), add on_conflict parameter
+  let url = SB_URL + '/rest/v1/' + path;
+  if (method === 'POST' && !path.includes('?')) url += '?on_conflict=pos';
+  else if (method === 'POST') url += '&on_conflict=pos';
+  
+  const res = await fetch(url, {
     method,
     headers: {
       'apikey': SB_KEY,
       'Authorization': 'Bearer ' + SB_KEY,
       'Content-Type': 'application/json',
-      'Prefer': method === 'POST' ? 'resolution=merge-duplicates' : ''
+      'Prefer': method === 'POST' ? 'resolution=merge-duplicates,return=minimal' : ''
     },
     body: body ? JSON.stringify(body) : undefined
   });
@@ -572,26 +570,15 @@ async function sbFetch(method, path, body) {
   return res.status === 204 ? null : res.json();
 }
 
-async function savePos(pos) {
-  const s = gs(pos);
-  try {
-    await sbFetch('POST', 'positionen', {
-      pos, g:s.g, m:s.m, a:s.a, ib:s.ib, ew:s.ew,
-      note:s.note, fotos:JSON.stringify(s.fotos),
-      updated_at: new Date().toISOString()
-    });
-  } catch(e) { console.warn('Speichern fehlgeschlagen:', e); }
-}
+// savePos defined above with debounce queue
 
-async function saveFotos(pos) {
+function saveFotos(pos) {
   const s = gs(pos);
-  try {
-    await sbFetch('POST', 'positionen', {
-      pos, g:s.g, m:s.m, a:s.a, ib:s.ib, ew:s.ew,
-      note:s.note, fotos:JSON.stringify(s.fotos),
-      updated_at: new Date().toISOString()
-    });
-  } catch(e) { console.warn('Foto-URLs speichern fehlgeschlagen:', e); }
+  sbFetch('POST', 'positionen', {
+    pos, g:s.g, m:s.m, a:s.a, ib:s.ib, ew:s.ew,
+    note:s.note, fotos:JSON.stringify(s.fotos),
+    updated_at: new Date().toISOString()
+  }).catch(e => console.warn('Foto-URLs speichern fehlgeschlagen:', e));
 }
 
 function saveState() { /* no-op, saving happens per position */ }
@@ -624,7 +611,7 @@ function showLoader(msg) {
   if (!el) {
     el = document.createElement('div');
     el.id = 'loader';
-    el.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(45,41,38,0.7);z-index:9999;display:flex;align-items:center;justify-content:center;color:#c8a882;font-family:Arial,sans-serif;font-size:16px;font-weight:700;letter-spacing:1px;';
+    el.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(45,41,38,0.7);z-index:9999;display:flex;align-items:center;justify-content:center;color:#c8a882;font-family:Arial Narrow,Arial,sans-serif;font-size:16px;font-weight:700;letter-spacing:1px;';
     document.body.appendChild(el);
   }
   el.textContent = msg || 'Wird gespeichert...';
@@ -674,9 +661,10 @@ setInterval(async () => {
         updProg(row.pos);
       }
     });
-    if(changed) upStats();
+    if(changed) { upStats(); restoreUI(); }
   } catch(e) {}
 }, 30000);
+
 
 // INIT
 buildTabs();
