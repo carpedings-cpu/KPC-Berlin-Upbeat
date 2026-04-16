@@ -431,7 +431,7 @@ function restoreUI() {
       const el = document.getElementById('K'+f+id);
       if(el && s[f]) {
         el.classList.add('on');
-        el.querySelector('.ci').innerHTML = '&#10003;';
+        el.querySelector('.cki').innerHTML = '&#10003;';
       }
     });
     // Restore card color
@@ -675,7 +675,7 @@ setInterval(async () => {
         const fields = ['g','m','a','ib','ew'];
         fields.forEach(f => {
           const el = document.getElementById('K'+f+id);
-          if(el) { el.classList.toggle('on', ST[row.pos][f]); el.querySelector('.ci').innerHTML = ST[row.pos][f]?'&#10003;':'&#9675;'; }
+          if(el) { el.classList.toggle('on', ST[row.pos][f]); el.querySelector('.cki').innerHTML = ST[row.pos][f]?'&#10003;':'&#9675;'; }
         });
         const card = document.getElementById('C'+id);
         const st = ist(row.pos);
