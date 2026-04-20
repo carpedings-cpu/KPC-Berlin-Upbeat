@@ -391,21 +391,7 @@ function updFG(pos){
   if(g)g.innerHTML=s.fotos.map((src,i)=>`<div class="fth" onclick="olb('${pos}',${i})"><img src="${src}"><button class="fdel" onclick="event.stopPropagation();df('${pos}',${i})">&#10005;</button></div>`).join('');
   if(b)b.innerHTML='&#128247; Foto'+(s.fotos.length?` <span class="fcnt">${s.fotos.length}</span>`:'');
 }
-function df(pos,i){
-  const url = gs(pos).fotos[i];
-  gs(pos).fotos.splice(i,1);
-  updFG(pos);rc(pos);upStats();
-  // Save updated fotos list to database
-  saveFotos(pos);
-  // Try to delete from Supabase Storage
-  if(url && url.includes('/storage/v1/object/public/fotos/')) {
-    const fname = url.split('/fotos/')[1].split('?')[0];
-    fetch(SB_URL+'/storage/v1/object/fotos/'+fname, {
-      method:'DELETE',
-      headers:{'apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY}
-    }).catch(e => console.warn('Foto löschen fehlgeschlagen:', e));
-  }
-}
+function df(pos,i){gs(pos).fotos.splice(i,1);updFG(pos);rc(pos);upStats();saveStateWithFotos();}
 
 // LIGHTBOX
 function olb(pos,i){document.getElementById('lbi').src=gs(pos).fotos[i];document.getElementById('lb').classList.add('on');}
