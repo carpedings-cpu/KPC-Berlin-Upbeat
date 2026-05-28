@@ -865,6 +865,22 @@ function updLastEdit(iso){
   el.textContent = dd + ' ' + tt;
 }
 
+
+function showToast(msg){
+  let t = document.getElementById('toast');
+  if(!t){
+    t = document.createElement('div');
+    t.id = 'toast';
+    t.style.cssText = 'position:fixed;bottom:80px;left:50%;transform:translateX(-50%);background:var(--green);color:#fff;padding:12px 22px;border-radius:24px;font-family:Arial Narrow,Arial,sans-serif;font-size:14px;font-weight:700;z-index:1500;box-shadow:0 6px 20px rgba(0,0,0,0.3);transition:opacity .3s;';
+    document.body.appendChild(t);
+  }
+  t.textContent = msg;
+  t.style.opacity = '1';
+  t.style.display = 'block';
+  clearTimeout(showToast._t);
+  showToast._t = setTimeout(()=>{ t.style.opacity='0'; setTimeout(()=>{t.style.display='none'},300); }, 2500);
+}
+
 function showLoader(msg) {
   let el = document.getElementById('loader');
   if (!el) {
@@ -1153,14 +1169,14 @@ async function pdfSaveData(){
   if(!EDPAGES.length) throw new Error('PDF wurde nicht vollständig geladen');
   if(!window.jspdf) throw new Error('PDF-Bibliothek nicht geladen (Seite neu laden)');
 
-  // Fallback: fname aus URL extrahieren wenn nicht gespeichert (alte Uploads)
-  let fname = p.fname;
-  if(!fname && p.url){
+  // Alten Dateinamen merken (für späteres Löschen)
+  let oldFname = p.fname;
+  if(!oldFname && p.url){
     const m = p.url.match(/\/fotos\/([^?]+)/);
-    if(m) fname = decodeURIComponent(m[1]);
+    if(m) oldFname = decodeURIComponent(m[1]);
   }
-  if(!fname) throw new Error('Dateiname nicht ermittelbar');
 
+  // PDF zusammenbauen
   const {jsPDF}=window.jspdf;
   let doc=null;
   EDPAGES.forEach((pg,idx)=>{
@@ -1178,21 +1194,33 @@ async function pdfSaveData(){
   if(!doc) throw new Error('PDF konnte nicht erstellt werden');
   const blob=doc.output('blob');
 
-  // PUT triggert UPDATE policy
-  const res=await fetch(SB_URL+'/storage/v1/object/fotos/'+fname,{
-    method:'PUT',
+  // Strategie: NEUE Datei schreiben (INSERT, funktioniert immer)
+  // Dateiname mit aktuellem Zeitstempel = niemals Konflikt
+  const typeSlug = (p.type||'Protokoll').replace(/ /g,'_');
+  const newFname = EDPOS.replace(/\./g,'_')+'_'+typeSlug+'_'+Date.now()+'.pdf';
+
+  const res=await fetch(SB_URL+'/storage/v1/object/fotos/'+newFname,{
+    method:'POST',
     headers:{'apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY,'Content-Type':'application/pdf'},
     body:blob
   });
   if(!res.ok){
     const errText = await res.text();
-    throw new Error('Server '+res.status+': '+errText.substring(0,150));
+    throw new Error('Server '+res.status+': '+errText.substring(0,200));
   }
 
-  // fname zurückschreiben falls vorher nicht da
-  if(!p.fname){
-    p.fname = fname;
-    saveFotos(EDPOS);
+  // Eintrag auf neue Datei zeigen lassen
+  p.fname = newFname;
+  p.url = SB_URL+'/storage/v1/object/public/fotos/'+newFname;
+  saveFotos(EDPOS);
+  updPG(EDPOS);
+
+  // Alte Datei im Hintergrund löschen (egal ob erfolgreich)
+  if(oldFname && oldFname !== newFname){
+    fetch(SB_URL+'/storage/v1/object/fotos/'+oldFname,{
+      method:'DELETE',
+      headers:{'apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY}
+    }).catch(()=>{});
   }
   return true;
 }
@@ -1214,6 +1242,7 @@ async function pdfClose(){
     document.getElementById('pdfed').classList.remove('on');
     document.getElementById('pdfedPages').innerHTML='';
     EDPAGES=[];EDPOS=null;EDIDX=null;EDDIRTY=false;
+    showToast('✓ Protokoll gespeichert');
   }catch(e){
     hideLoader();
     alert('Speichern fehlgeschlagen!\n\n'+e.message+'\n\nDer Editor bleibt geöffnet damit nichts verloren geht.\nBitte Internet prüfen und nochmal auf Schließen tippen.');
@@ -1230,7 +1259,7 @@ async function pdfSaveManual(){
     await pdfSaveData();
     hideLoader();
     EDDIRTY=false;
-    alert('Gespeichert.');
+    showToast('✓ Gespeichert');
   }catch(e){
     hideLoader();
     alert('Speichern fehlgeschlagen: '+e.message);
