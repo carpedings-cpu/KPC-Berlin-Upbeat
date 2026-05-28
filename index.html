@@ -227,6 +227,7 @@ select.fs option{background:var(--anthrazit);}
     <div class="pen-pick" id="penPick"></div>
     <button class="pdfed-tool on" id="toolPen" onclick="pdfSetTool('pen')">&#9999;&#65039; Stift</button>
     <button class="pdfed-tool" id="toolErase" onclick="pdfSetTool('erase')">&#129003; Radierer</button>
+    <button class="pdfed-tool save" onclick="pdfSaveManual()">&#128190; Speichern</button>
     <button class="pdfed-tool close" onclick="pdfClose()">&#10005; Schlie&#223;en</button>
   </div>
   <div class="pdfed-pages" id="pdfedPages"></div>
@@ -1130,12 +1131,16 @@ async function pdfSaveData(){
     doc.addImage(imgData,'JPEG',0,0,wmm,hmm);
   });
   const blob=doc.output('blob');
+  // PUT statt POST: triggert UPDATE policy (Datei existiert ja schon)
   const res=await fetch(SB_URL+'/storage/v1/object/fotos/'+p.fname,{
-    method:'POST',
-    headers:{'apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY,'Content-Type':'application/pdf','x-upsert':'true'},
+    method:'PUT',
+    headers:{'apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY,'Content-Type':'application/pdf'},
     body:blob
   });
-  if(!res.ok) throw new Error(await res.text());
+  if(!res.ok){
+    const errText = await res.text();
+    throw new Error(errText);
+  }
   return true;
 }
 
@@ -1146,16 +1151,32 @@ async function pdfClose(){
     try{
       await pdfSaveData();
       hideLoader();
+      EDDIRTY=false;
     }catch(e){
       hideLoader();
-      if(!confirm('Speichern fehlgeschlagen: '+e.message+'\n\nTrotzdem schließen? (Änderungen gehen verloren)')) {
-        return;
-      }
+      alert('Speichern fehlgeschlagen — Änderungen sind NICHT verloren.\n\nFehler: '+e.message+'\n\nBitte Internetverbindung prüfen und nochmal auf Schließen tippen, oder den manuellen Speichern-Button verwenden.');
+      return; // Editor bleibt offen, Zeichnung erhalten
     }
   }
   document.getElementById('pdfed').classList.remove('on');
   document.getElementById('pdfedPages').innerHTML='';
   EDPAGES=[];EDPOS=null;EDIDX=null;EDDIRTY=false;
+}
+
+// Manueller Speichern-Button als Sicherheitsnetz
+async function pdfSaveManual(){
+  if(EDPOS===null||EDIDX===null)return;
+  if(!EDDIRTY){ alert('Nichts zu speichern.'); return; }
+  showLoader('Protokoll wird gespeichert...');
+  try{
+    await pdfSaveData();
+    hideLoader();
+    EDDIRTY=false;
+    alert('Gespeichert.');
+  }catch(e){
+    hideLoader();
+    alert('Speichern fehlgeschlagen: '+e.message);
+  }
 }
 
 async function downloadProtoZip(){
