@@ -1084,19 +1084,59 @@ function attachInk(ink){
     const r=ink.getBoundingClientRect();
     return [(e.clientX-r.left)*(ink.width/r.width), (e.clientY-r.top)*(ink.height/r.height)];
   }
-  function start(e){e.preventDefault();drawing=true;[lastX,lastY]=getXY(e);}
+  function eraseAt(x,y){
+    // Fill circle at point - works for single tap
+    ctx.save();
+    ctx.globalCompositeOperation='destination-out';
+    ctx.fillStyle='rgba(0,0,0,1)';
+    ctx.beginPath();
+    ctx.arc(x,y,40,0,2*Math.PI);
+    ctx.fill();
+    ctx.restore();
+  }
+  function eraseLine(x1,y1,x2,y2){
+    // Stroke line between points - no gaps when wiping fast
+    ctx.save();
+    ctx.globalCompositeOperation='destination-out';
+    ctx.strokeStyle='rgba(0,0,0,1)';
+    ctx.lineWidth=80;
+    ctx.lineCap='round';
+    ctx.lineJoin='round';
+    ctx.beginPath();
+    ctx.moveTo(x1,y1);
+    ctx.lineTo(x2,y2);
+    ctx.stroke();
+    ctx.restore();
+  }
+  function start(e){
+    e.preventDefault();
+    drawing=true;
+    [lastX,lastY]=getXY(e);
+    if(EDTOOL==='erase'){
+      eraseAt(lastX,lastY);
+      EDDIRTY=true;
+    }
+  }
   function move(e){
     if(!drawing)return;
     e.preventDefault();
     const [x,y]=getXY(e);
     if(EDTOOL==='erase'){
-      ctx.save();ctx.globalCompositeOperation='destination-out';
-      ctx.beginPath();ctx.arc(x,y,40,0,2*Math.PI);ctx.fill();ctx.restore();
+      eraseLine(lastX,lastY,x,y);
+      eraseAt(x,y);
     } else {
-      ctx.strokeStyle=EDCOLOR;ctx.lineWidth=4;ctx.lineCap='round';ctx.lineJoin='round';
-      ctx.beginPath();ctx.moveTo(lastX,lastY);ctx.lineTo(x,y);ctx.stroke();
+      ctx.strokeStyle=EDCOLOR;
+      ctx.fillStyle=EDCOLOR;
+      ctx.lineWidth=4;
+      ctx.lineCap='round';
+      ctx.lineJoin='round';
+      ctx.beginPath();
+      ctx.moveTo(lastX,lastY);
+      ctx.lineTo(x,y);
+      ctx.stroke();
     }
-    [lastX,lastY]=[x,y];EDDIRTY=true;
+    [lastX,lastY]=[x,y];
+    EDDIRTY=true;
   }
   function end(e){drawing=false;}
   ink.addEventListener('pointerdown',start);
