@@ -224,7 +224,6 @@ select.fs option{background:var(--anthrazit);}
 <div class="pdfed" id="pdfed">
   <div class="pdfed-bar">
     <span class="ti" id="pdfedTitle">Protokoll</span>
-    <div class="pen-pick" id="penPick"></div>
     <button class="pdfed-tool on" id="toolPen" onclick="pdfSetTool('pen')">&#9999;&#65039; Stift</button>
     <button class="pdfed-tool" id="toolErase" onclick="pdfSetTool('erase')">&#129003; Radierer</button>
     <button class="pdfed-tool save" onclick="pdfSaveManual()">&#128190; Speichern</button>
@@ -1028,26 +1027,20 @@ function delProto(pos,i){
 }
 
 // ── PDF EDITOR (Pencil) ──
-let EDPOS=null, EDIDX=null, EDTOOL='pen', EDCOLOR='#1a3a8a', EDPAGES=[], EDDIRTY=false;
-const PEN_COLORS=['#1a3a8a','#000000','#c0392b','#1e7e34'];
+let EDPOS=null, EDIDX=null, EDTOOL='pen', EDPAGES=[], EDDIRTY=false;
+const EDCOLOR='#000000';
 
 function pdfSetTool(t){
   EDTOOL=t;
   document.getElementById('toolPen').classList.toggle('on',t==='pen');
   document.getElementById('toolErase').classList.toggle('on',t==='erase');
 }
-function buildPenPick(){
-  const w=document.getElementById('penPick');
-  w.innerHTML=PEN_COLORS.map(c=>`<div class="pen-c${c===EDCOLOR?' on':''}" style="background:${c}" onclick="pdfSetColor('${c}')"></div>`).join('');
-}
-function pdfSetColor(c){EDCOLOR=c;pdfSetTool('pen');buildPenPick();}
 
 async function pdfOpen(pos,i){
   const p=gs(pos).pdfs[i];
   if(!p)return;
   EDPOS=pos;EDIDX=i;EDPAGES=[];EDDIRTY=false;
   document.getElementById('pdfedTitle').textContent=p.type+': '+p.name;
-  buildPenPick();
   pdfSetTool('pen');
   document.getElementById('pdfed').classList.add('on');
   const pagesEl=document.getElementById('pdfedPages');
@@ -1098,9 +1091,9 @@ function attachInk(ink){
     const [x,y]=getXY(e);
     if(EDTOOL==='erase'){
       ctx.save();ctx.globalCompositeOperation='destination-out';
-      ctx.beginPath();ctx.arc(x,y,18,0,2*Math.PI);ctx.fill();ctx.restore();
+      ctx.beginPath();ctx.arc(x,y,40,0,2*Math.PI);ctx.fill();ctx.restore();
     } else {
-      ctx.strokeStyle=EDCOLOR;ctx.lineWidth=3;ctx.lineCap='round';ctx.lineJoin='round';
+      ctx.strokeStyle=EDCOLOR;ctx.lineWidth=4;ctx.lineCap='round';ctx.lineJoin='round';
       ctx.beginPath();ctx.moveTo(lastX,lastY);ctx.lineTo(x,y);ctx.stroke();
     }
     [lastX,lastY]=[x,y];EDDIRTY=true;
@@ -1114,8 +1107,20 @@ function attachInk(ink){
 }
 
 async function pdfSaveData(){
+  if(EDPOS===null||EDIDX===null) return false;
   const p=gs(EDPOS).pdfs[EDIDX];
-  if(!p)return false;
+  if(!p) throw new Error('PDF-Eintrag nicht gefunden');
+  if(!EDPAGES.length) throw new Error('PDF wurde nicht vollständig geladen');
+  if(!window.jspdf) throw new Error('PDF-Bibliothek nicht geladen (Seite neu laden)');
+
+  // Fallback: fname aus URL extrahieren wenn nicht gespeichert (alte Uploads)
+  let fname = p.fname;
+  if(!fname && p.url){
+    const m = p.url.match(/\/fotos\/([^?]+)/);
+    if(m) fname = decodeURIComponent(m[1]);
+  }
+  if(!fname) throw new Error('Dateiname nicht ermittelbar');
+
   const {jsPDF}=window.jspdf;
   let doc=null;
   EDPAGES.forEach((pg,idx)=>{
@@ -1130,37 +1135,50 @@ async function pdfSaveData(){
     else { doc.addPage([wmm,hmm]); }
     doc.addImage(imgData,'JPEG',0,0,wmm,hmm);
   });
+  if(!doc) throw new Error('PDF konnte nicht erstellt werden');
   const blob=doc.output('blob');
-  // PUT statt POST: triggert UPDATE policy (Datei existiert ja schon)
-  const res=await fetch(SB_URL+'/storage/v1/object/fotos/'+p.fname,{
+
+  // PUT triggert UPDATE policy
+  const res=await fetch(SB_URL+'/storage/v1/object/fotos/'+fname,{
     method:'PUT',
     headers:{'apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY,'Content-Type':'application/pdf'},
     body:blob
   });
   if(!res.ok){
     const errText = await res.text();
-    throw new Error(errText);
+    throw new Error('Server '+res.status+': '+errText.substring(0,150));
+  }
+
+  // fname zurückschreiben falls vorher nicht da
+  if(!p.fname){
+    p.fname = fname;
+    saveFotos(EDPOS);
   }
   return true;
 }
 
 async function pdfClose(){
-  // Auto-save on close if anything was drawn
-  if(EDDIRTY && EDPOS!==null && EDIDX!==null){
-    showLoader('Protokoll wird gespeichert...');
-    try{
-      await pdfSaveData();
-      hideLoader();
-      EDDIRTY=false;
-    }catch(e){
-      hideLoader();
-      alert('Speichern fehlgeschlagen — Änderungen sind NICHT verloren.\n\nFehler: '+e.message+'\n\nBitte Internetverbindung prüfen und nochmal auf Schließen tippen, oder den manuellen Speichern-Button verwenden.');
-      return; // Editor bleibt offen, Zeichnung erhalten
-    }
+  if(EDPOS===null || EDIDX===null){
+    document.getElementById('pdfed').classList.remove('on');
+    document.getElementById('pdfedPages').innerHTML='';
+    EDPAGES=[];EDDIRTY=false;
+    return;
   }
-  document.getElementById('pdfed').classList.remove('on');
-  document.getElementById('pdfedPages').innerHTML='';
-  EDPAGES=[];EDPOS=null;EDIDX=null;EDDIRTY=false;
+  // IMMER speichern beim Schließen, unabhängig von EDDIRTY
+  // (Touch-Events feuern nicht immer zuverlässig pointermove)
+  showLoader('Protokoll wird gespeichert...');
+  try{
+    await pdfSaveData();
+    hideLoader();
+    // Erst NACH erfolgreichem Speichern schließen
+    document.getElementById('pdfed').classList.remove('on');
+    document.getElementById('pdfedPages').innerHTML='';
+    EDPAGES=[];EDPOS=null;EDIDX=null;EDDIRTY=false;
+  }catch(e){
+    hideLoader();
+    alert('Speichern fehlgeschlagen!\n\n'+e.message+'\n\nDer Editor bleibt geöffnet damit nichts verloren geht.\nBitte Internet prüfen und nochmal auf Schließen tippen.');
+    // Editor bleibt offen, Zeichnung erhalten
+  }
 }
 
 // Manueller Speichern-Button als Sicherheitsnetz
