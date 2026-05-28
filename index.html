@@ -92,6 +92,33 @@ select.fs option{background:var(--anthrazit);}
 .pdoc a:hover{text-decoration:underline;}
 .pdoc-del{background:transparent;border:none;color:#8b2222;cursor:pointer;font-size:13px;padding:0 4px;}
 
+
+/* PDF EDITOR */
+.pdfed{display:none;position:fixed;inset:0;background:#3a3530;z-index:1000;flex-direction:column;}
+.pdfed.on{display:flex;}
+.pdfed-bar{background:var(--anthrazit);padding:10px 14px;display:flex;align-items:center;gap:10px;flex-shrink:0;box-shadow:0 2px 8px rgba(0,0,0,.4);}
+.pdfed-bar .ti{color:var(--accent);font-size:13px;font-weight:700;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.pdfed-tool{background:rgba(255,255,255,.1);border:1.5px solid transparent;color:#fff;
+  border-radius:var(--r);padding:7px 11px;font-size:12px;font-weight:700;cursor:pointer;
+  font-family:Arial Narrow,Arial,sans-serif;-webkit-tap-highlight-color:transparent;white-space:nowrap;}
+.pdfed-tool.on{border-color:var(--accent);background:var(--braun);color:var(--accent);}
+.pdfed-tool.save{background:var(--green);color:#fff;}
+.pdfed-tool.close{background:transparent;}
+.pdfed-pages{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:14px;display:flex;flex-direction:column;align-items:center;gap:14px;}
+.pdfed-pg{position:relative;background:#fff;box-shadow:0 4px 16px rgba(0,0,0,.3);line-height:0;}
+.pdfed-pg canvas{display:block;touch-action:none;}
+.pdfed-pg .ink{position:absolute;top:0;left:0;touch-action:none;}
+.pen-pick{display:flex;gap:6px;align-items:center;}
+.pen-c{width:24px;height:24px;border-radius:50%;border:2px solid rgba(255,255,255,.4);cursor:pointer;}
+.pen-c.on{border-color:#fff;transform:scale(1.15);}
+
+/* PROTOKOLL EDIT/DEL BUTTONS */
+.pdoc .pdoc-name{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:700;cursor:pointer;}
+.pdoc .pdoc-name:hover{text-decoration:underline;}
+.pdoc-btn{background:transparent;border:none;cursor:pointer;font-size:13px;padding:2px 5px;border-radius:3px;}
+.pdoc-edit{color:var(--braun);}
+.pdoc-del{color:#8b2222;}
+
 /* ITEM CARD */
 .card{border-bottom:1px solid var(--border);padding:10px 14px;}
 .card:last-child{border-bottom:none;}
@@ -178,28 +205,40 @@ select.fs option{background:var(--anthrazit);}
     <span class="sp"><span class="sd dok"></span>Vollst&#228;ndig: <strong id="cD">0</strong></span>
     <span class="sp"><span class="sd dop"></span>Offen/Teilw.: <strong id="cO">0</strong></span>
     <span class="sp">Gesamt: <strong id="cT">0</strong></span>
+    <span class="sp" style="margin-left:auto" id="lastEditWrap">Zuletzt bearbeitet: <strong id="lastEdit">–</strong></span>
   </div>
 </header>
 
 <main id="main"></main>
-
-    <div class="proto-body" id="protoBody"></div>
-  </div>
-</div>
 <div class="lb" id="lb">
   <button class="lbx" onclick="clb()">&#10005;</button>
   <img id="lbi" src="" alt="">
+</div>
+
+<div class="pdfed" id="pdfed">
+  <div class="pdfed-bar">
+    <span class="ti" id="pdfedTitle">Protokoll</span>
+    <div class="pen-pick" id="penPick"></div>
+    <button class="pdfed-tool on" id="toolPen" onclick="pdfSetTool('pen')">&#9999;&#65039; Stift</button>
+    <button class="pdfed-tool" id="toolErase" onclick="pdfSetTool('erase')">&#129003; Radierer</button>
+    <button class="pdfed-tool close" onclick="pdfClose()">&#10005; Schlie&#223;en</button>
+  </div>
+  <div class="pdfed-pages" id="pdfedPages"></div>
 </div>
 
 <div style="position:fixed;bottom:18px;left:0;right:0;display:flex;justify-content:center;gap:10px;z-index:50;padding:0 12px">
   <button class="fab" style="background:#2d2926;flex:1;justify-content:center;max-width:120px" onclick="expKunde(false)">&#128196; Kundenbericht ohne Fotos</button>
   <button class="fab" style="background:#4a3a28;flex:1;justify-content:center;max-width:130px" onclick="expKunde(true)">&#128247; Kundenbericht mit Fotos</button>
   <button class="fab" style="background:#1a5f7a;flex:0;padding:11px 12px" onclick="downloadZip()" title="Alle Fotos als ZIP">&#128190;</button>
+  <button class="fab" style="background:#6b5040;flex:0;padding:11px 12px" onclick="downloadProtoZip()" title="Alle Protokolle als ZIP">&#128196;</button>
   
 </div>
 <input type="file" id="fi" accept="image/*" style="display:none">
 <input type="file" id="pi" accept=".pdf,.doc,.docx" style="display:none">
 
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 <script>
 const DATA = [{"pos":"01.","bez":"Untergeschoss","label":"UG","subsections":[{"pos":"01.02.","bez":"Nassmüllanlage","items":[{"pos":"01.02.00.00.01.","menge":"1","einh":"Stk","bez":"Mischarmatur mit CNS-Schlauchhalter-Set m. 15 m","fabrikat":"KWC/Armag","typ":"100.191 /306.R01.1M5.0PGT"}]},{"pos":"01.03.","bez":"Anlieferung","items":[{"pos":"01.03.00.00.01.","menge":"1","einh":"Stk","bez":"Wandwaage (Tragkraft bis 300 kg)","fabrikat":"ADE","typ":"Terrex N-300 + STAN07"},{"pos":"01.03.00.00.02.","menge":"1","einh":"Stk","bez":"Schreibpult","fabrikat":"Rieber","typ":"Sonderbau"},{"pos":"01.03.00.00.03.","menge":"1","einh":"Stk","bez":"Handwaschbecken freihängend 550x450","fabrikat":"B.Pro","typ":"WB5,5x4,5x1,5 (507009)"},{"pos":"01.03.00.00.03.a","menge":"1","einh":"Stk","bez":"Mischbatterie","fabrikat":"KWC","typ":"130.1N.000FL"},{"pos":"01.03.00.00.04.","menge":"1","einh":"Stk","bez":"Mischarmatur mit CNS-Schlauchhalter-Set m. 15 m","fabrikat":"KWC/Armag","typ":"100.191 /306.R01.1M5.0PGT"},{"pos":"01.03.00.00.05.","menge":"1","einh":"Stk","bez":"Gabelhubwagen","fabrikat":"Kaiser & Kraft","typ":"Eurokraft basic"},{"pos":"01.03.00.00.06.","menge":"1","einh":"Stk","bez":"Plattformwagen","fabrikat":"B.Pro","typ":"PFWP 10x6 (383657)"},{"pos":"01.03.00.00.07.","menge":"1","einh":"Stk","bez":"Insektenvernichter mit Klebefolie","fabrikat":"Insect-o-cutor","typ":"Halo Curve"}]},{"pos":"01.04.","bez":"Müllraum","items":[{"pos":"01.04.00.00.01.","menge":"1","einh":"Stk","bez":"Kartonagenpresse","fabrikat":"HSM","typ":"V-Press 610"},{"pos":"01.04.00.00.02.","menge":"1","einh":"Stk","bez":"Insektenvernichter mit Klebefolie","fabrikat":"Insect-o-cutor","typ":"Halo Curve"},{"pos":"01.04.00.00.03.","menge":"2","einh":"Stk","bez":"Transportwagen für Kartonagen","fabrikat":"Zarges","typ":"155985"}]},{"pos":"01.05.","bez":"Trockenwarenlager","items":[{"pos":"01.05.00.00.01.","menge":"15.7","einh":"m","bez":"Lagerregal, Aluminium, Tiefe 500 mm","fabrikat":"Kohlhoff","typ":"ARS"},{"pos":"01.05.00.00.02.","menge":"1","einh":"Stk","bez":"Plattformwagen 1000x600mm","fabrikat":"B.Pro","typ":"PFWP 10x6 (383657)"}]},{"pos":"01.06.","bez":"Getränkelager","items":[{"pos":"01.06.00.00.01.","menge":"2","einh":"m","bez":"Lagerregal, Chrom-Nickel-Stahl, Tiefe 500 mm","fabrikat":"Kohlhoff","typ":"ERS"},{"pos":"01.06.00.00.03.","menge":"1","einh":"St","bez":"Lagerschrank für CO2-Flaschen","fabrikat":"Kaiser & Kraft","typ":"eurokraft 111809"},{"pos":"01.06.00.00.04.","menge":"4","einh":"St","bez":"Kunststoff Transportbox für 2 kg Gasflaschen","fabrikat":"GPG","typ":"25GPGCO2"},{"pos":"01.06.00.00.05.","menge":"1","einh":"Stk","bez":"Plattformwagen 1000x600mm","fabrikat":"B.Pro","typ":"PFWP 10x6 (383657)"}]},{"pos":"01.07.","bez":"Vorbereitung unrein/auspacken","items":[{"pos":"01.07.00.00.01.","menge":"1","einh":"Stk","bez":"HWB-Ausguss-Kombination übereinander","fabrikat":"B.Pro","typ":"HAU-PW5x7 (573288)"},{"pos":"01.07.00.00.01.a","menge":"1","einh":"Stk","bez":"Mischbatterie","fabrikat":"KWC","typ":"130.1N.000FL"},{"pos":"01.07.00.00.02.","menge":"1","einh":"Stk","bez":"Arbeitstisch mit 2 Becken 600x500x250","fabrikat":"Rieber","typ":"Sonderbau"},{"pos":"01.07.00.00.02.a","menge":"1","einh":"Stk","bez":"Mischbatterie","fabrikat":"KWC","typ":"K.24.42.64.000C71"},{"pos":"01.07.00.00.03.","menge":"2","einh":"Stk","bez":"Abfallrolli 50l","fabrikat":"WAS","typ":"4452400 + 4452001"},{"pos":"01.07.00.00.04.","menge":"1","einh":"Stk","bez":"Tischwaage, elektronisch (6/15kg)","fabrikat":"ADE","typ":"GW 400-15"},{"pos":"01.07.00.00.05.","menge":"1","einh":"Stk","bez":"Salat und Gemüse-Waschmaschine","fabrikat":"Alexander Solia","typ":"SWA 75.2"},{"pos":"01.07.00.00.06.","menge":"1","einh":"Stk","bez":"Wandbord 2-etagig","fabrikat":"Rieber","typ":"Sonderbau"}]},{"pos":"01.08.","bez":"Kühlräume","items":[{"pos":"01.08.00.00.01.","menge":"32.5","einh":"m","bez":"Lagerregal, Chrom-Nickel-Stahl, Tiefe 500 mm","fabrikat":"Kohlhoff","typ":"ERS"}]},{"pos":"01.09.","bez":"Lager Teeküchen","items":[{"pos":"01.09.00.00.01.","menge":"7.5","einh":"m","bez":"Lagerregal, Aluminium, Tiefe 500 mm","fabrikat":"Kohlhoff","typ":"ARS"}]},{"pos":"01.10.","bez":"Lager Nonfood","items":[{"pos":"01.10.00.00.01.","menge":"10.6","einh":"m","bez":"Lagerregal, Aluminium, Tiefe 500 mm","fabrikat":"Kohlhoff","typ":"ARS"}]},{"pos":"01.11.","bez":"Umkleide Damen","items":[{"pos":"01.11.00.00.01.","menge":"20","einh":"St","bez":"Umkleidespind mit vorgelagerter Sitzbank 300 mm","fabrikat":"CEHA","typ":"MS10510110L"},{"pos":"01.11.00.00.02.","menge":"1","einh":"St","bez":"Wäscheschrank sauber","fabrikat":"CEHA","typ":"MS10526250"},{"pos":"01.11.00.00.03.","menge":"1","einh":"St","bez":"Wäscheschrank schmutz","fabrikat":"CEHA","typ":"MS10526510L"},{"pos":"01.11.00.00.04.","menge":"1","einh":"St","bez":"Kantinenspind / Schließfächer 30 Fächer","fabrikat":"Rotstahl","typ":"2161-031000-0881112"}]},{"pos":"01.12.","bez":"Umkleide Herren","items":[{"pos":"01.12.00.00.01.","menge":"14","einh":"St","bez":"Umkleidespind mit vorgelagerter Sitzbank 300 mm","fabrikat":"CEHA","typ":"MS10510110L"},{"pos":"01.12.00.00.02.","menge":"1","einh":"St","bez":"Wäscheschrank sauber","fabrikat":"CEHA","typ":"MS10526250"},{"pos":"01.12.00.00.03.","menge":"1","einh":"St","bez":"Wäscheschrank schmutz","fabrikat":"CEHA","typ":"MS10526510L"},{"pos":"01.12.00.00.04.","menge":"1","einh":"St","bez":"Kantinenspind / Schließfächer 20 Fächer","fabrikat":"Rotstahl","typ":"2161-021000-0601112"}]},{"pos":"01.13.","bez":"Lager Wäsche","items":[{"pos":"01.13.00.00.01.","menge":"3.8","einh":"m","bez":"Lagerregal, Aluminium, Tiefe 500 mm","fabrikat":"Kohlhoff","typ":"ARS"}]},{"pos":"01.14.","bez":"Flur UG / Sonstiges","items":[{"pos":"01.14.00.00.01.","menge":"105","einh":"m","bez":"Rammschutzleisten","fabrikat":"Terbrack","typ":"Tekalen"}]}],"items":[]},{"pos":"02.","bez":"Erdgeschoss","label":"EG","subsections":[{"pos":"02.01.","bez":"Flur EG","items":[{"pos":"02.01.00.00.01.","menge":"1","einh":"Stk","bez":"Handwaschbecken freihängend 550 x 450","fabrikat":"B.Pro","typ":"WB5,5x4,5x1,5 (507009)"},{"pos":"02.01.00.00.01.a","menge":"1","einh":"Stk","bez":"Mischbatterie","fabrikat":"KWC","typ":"130.1N.000FL"},{"pos":"02.01.00.00.02.","menge":"1","einh":"Stk","bez":"Mischarmatur mit Mikrospraygerät und Schlauchaufroller","fabrikat":"Dr Weigert/Armag","typ":"Neomatik WSG 2 / 306.R01.1M5.0PGT"},{"pos":"02.01.00.00.03.","menge":"106","einh":"m","bez":"Rammschutzleisten","fabrikat":"Terbrack","typ":"Tekalen"},{"pos":"02.01.00.00.04.","menge":"1","einh":"Stk","bez":"Sohlenreinigungsmaschine","fabrikat":"Kohlhoff","typ":"HC-Primus-2-S"}]},{"pos":"02.02.","bez":"Tageslager","items":[{"pos":"02.02.00.00.01.","menge":"4.5","einh":"m","bez":"Lagerregal, Aluminium, Tiefe 500 mm","fabrikat":"Kohlhoff","typ":"ARS"}]},{"pos":"02.03.","bez":"Küchenleiterbüro","items":[{"pos":"02.03.00.00.02.","menge":"1","einh":"Stk","bez":"Rückstellproben-Tiefkühlschrank (EK)","fabrikat":"NordCap","typ":"RGS 308"}]},{"pos":"02.04.","bez":"Kühlräume","items":[{"pos":"02.04.00.00.01.","menge":"11","einh":"m","bez":"Lagerregal, Chrom-Nickel-Stahl, Tiefe 500 mm","fabrikat":"Kohlhoff","typ":"ERS"}]},{"pos":"02.05.","bez":"Vorbereitung rein","items":[{"pos":"02.05.00.00.01.","menge":"1","einh":"Stk","bez":"HWB-Ausguss-Kombination übereinander","fabrikat":"B.Pro","typ":"HAU-PW5x7 (573288)"},{"pos":"02.05.00.00.01.a","menge":"1","einh":"Stk","bez":"Mischbatterie","fabrikat":"KWC","typ":"130.1N.000FL"},{"pos":"02.05.00.00.02.","menge":"1","einh":"Stk","bez":"Arbeitstisch mit 2 Becken 500x500x250","fabrikat":"Rieber","typ":"Sonderbau"},{"pos":"02.05.00.00.02.a","menge":"1","einh":"Stk","bez":"Mischbatterie","fabrikat":"KWC","typ":"K.24.42.64.000C71"},{"pos":"02.05.00.00.03.","menge":"2","einh":"Stk","bez":"Abfallrolli 50l","fabrikat":"WAS","typ":"4452400 + 4452001"},{"pos":"02.05.00.00.04.","menge":"1","einh":"Stk","bez":"Aufgeständertes Board, 2-etagig","fabrikat":"Rieber","typ":"Sonderbau"},{"pos":"02.05.00.00.05.","menge":"1","einh":"St","bez":"Kühltisch 3x1/1 GN längs (ZK), 800mm tief","fabrikat":"Rieber","typ":"Sonderbau"},{"pos":"02.05.00.00.06.","menge":"1","einh":"St","bez":"Universalküchenmaschine, fahrbar","fabrikat":"Alexander Solia","typ":"M50"},{"pos":"02.05.00.00.07.","menge":"1","einh":"Stk","bez":"Planeten-, Rühr- und Schlagmaschine 30l","fabrikat":"Alexander Solia","typ":"AW R 30.2"}]},{"pos":"02.06.","bez":"Kalte Küche","items":[{"pos":"02.06.00.00.01.","menge":"1","einh":"Stk","bez":"Mischarmatur mit Mikrospraygerät und Schlauchaufroller","fabrikat":"Dr Weigert/Armag","typ":"Neomatik WSG 2 / 306.R01.1M5.0PGT"},{"pos":"02.06.00.00.02.","menge":"1","einh":"St","bez":"Handwaschbecken eingebaut","fabrikat":"Rieber","typ":"Sonderbau"},{"pos":"02.06.00.00.02.a","menge":"1","einh":"St","bez":"Mischbatterie","fabrikat":"KWC","typ":"130.1N.000FL"},{"pos":"02.06.00.00.03.","menge":"1","einh":"St","bez":"Arbeitstisch mit Becken 500x500x250 m. Spritzschutz","fabrikat":"Rieber","typ":"Sonderbau"},{"pos":"02.06.00.00.03.a","menge":"1","einh":"St","bez":"Mischbatterie","fabrikat":"KWC","typ":"10.441.013.000FL"},{"pos":"02.06.00.00.04.","menge":"1","einh":"Stk","bez":"Abfallrolli 50l","fabrikat":"WAS","typ":"4452400 + 4452001"},{"pos":"02.06.00.00.05.","menge":"1","einh":"St","bez":"Kühltisch 3x1/1 GN längs (ZK), 800mm tief","fabrikat":"Rieber","typ":"Sonderbau"},{"pos":"02.06.00.00.06.","menge":"3","einh":"Stk","bez":"Wandhängeschrank mit Schiebetüren","fabrikat":"Rieber","typ":"Sonderbau"},{"pos":"02.06.00.00.07.","menge":"1","einh":"St","bez":"Aufschnittmaschine, Messer D=300 mm","fabrikat":"ADE","typ":"Juwel2K-400"},{"pos":"02.06.00.00.08.","menge":"1","einh":"St","bez":"Tischwaage elektronisch (6/15 kg)","fabrikat":"ADE","typ":"GW400-15"},{"pos":"02.06.00.00.09.","menge":"1","einh":"St","bez":"Vakuumiergerät, Tischgerät","fabrikat":"Vakuumit","typ":"VacuFox"},{"pos":"02.06.00.00.10.","menge":"1","einh":"St","bez":"Einwürfelbereiter Tagesleistung 120kg","fabrikat":"Wessamat","typ":"Combi Line W120 ECL"},{"pos":"02.06.00.00.11.","menge":"1","einh":"Stk","bez":"Arbeitstisch, fahrbar","fabrikat":"Rieber","typ":"Sonderbau"},{"pos":"02.06.00.00.12.","menge":"2","einh":"St","bez":"Regalwagen, hohe Ausführung, GN1/1, 1-teilig","fabrikat":"B.Pro","typ":"RWR 160"},{"pos":"02.06.00.00.13.","menge":"2","einh":"Stk","bez":"Regalwagen hohe Ausführung, GN 2/1","fabrikat":"B.Pro","typ":"RWR 161"}]},{"pos":"02.07.","bez":"Produktion","items":[{"pos":"02.07.00.00.01.","menge":"1","einh":"St","bez":"Schockkühler/-froster (EK)","fabrikat":"Cool Compact","typ":"SKFMEQ1311D"},{"pos":"02.07.00.00.02.","menge":"1","einh":"St","bez":"Handwaschbecken","fabrikat":"Rieber","typ":"Sonderbau"},{"pos":"02.07.00.00.02.a","menge":"1","einh":"St","bez":"Mischbatterie","fabrikat":"KWC","typ":"130.1N.000FL"},{"pos":"02.07.00.00.03.","menge":"1","einh":"St","bez":"L-Arbeitstisch mit Becken 500x500x250 m. Spritzschutz","fabrikat":"Rieber","typ":"Sonderbau"},{"pos":"02.07.00.00.03.a","menge":"1","einh":"St","bez":"Mischbatterie","fabrikat":"KWC","typ":"10.441.013.000FL"},{"pos":"02.07.00.00.04.","menge":"1","einh":"Stk","bez":"Abfallrolli 50l","fabrikat":"WAS","typ":"4452400 + 4452001"},{"pos":"02.07.00.00.05.","menge":"3","einh":"m","bez":"Topfregal mit Rückwand Tiefe 600 mm","fabrikat":"Kohlhoff","typ":"ERS"},{"pos":"02.07.00.00.06.","menge":"2","einh":"Stk","bez":"Multifunktionales Koch- und Bratgerät GN 2/1 100 L","fabrikat":"MKN","typ":"FlexiChef Team FCEKMP223D_23D"},{"pos":"02.07.00.00.07.","menge":"1","einh":"St","bez":"Anbaublock Arbeitstisch","fabrikat":"MKN","typ":"Sonderbau"},{"pos":"02.07.00.00.08.","menge":"1","einh":"St","bez":"Multifunktionales Koch- und Bratgerät 2x14 L","fabrikat":"Rational","typ":"iVario Pro 2-XS"},{"pos":"02.07.00.00.09.","menge":"1","einh":"St","bez":"Installationswand","fabrikat":"Fega","typ":"Sonderbau"},{"pos":"02.07.00.00.10.","menge":"1","einh":"St","bez":"Anbaublock Arbeitstisch 400mm","fabrikat":"MKN","typ":"Sonderbau"},{"pos":"02.07.00.00.11.","menge":"1","einh":"Stk","bez":"Fritteuse, Inhalt 2x12 l","fabrikat":"MKN","typ":"Optima 850"},{"pos":"02.07.00.00.12.","menge":"1","einh":"St","bez":"Frittenwanne","fabrikat":"MKN","typ":"Optima 850"},{"pos":"02.07.00.00.13.","menge":"1","einh":"St","bez":"Anbaublock Arbeitstisch 500mm","fabrikat":"MKN","typ":"Sonderbau"},{"pos":"02.07.00.00.14.","menge":"1","einh":"St","bez":"4-Platten Induktionskochfeld","fabrikat":"MKN","typ":"2023105"},{"pos":"02.07.00.00.15.","menge":"1","einh":"St","bez":"2-Platten Induktionskochfeld","fabrikat":"MKN","typ":"2023104"},{"pos":"02.07.00.00.16.","menge":"1","einh":"St","bez":"Anbaublock Arbeitstisch 600 mm mit Standarmatur","fabrikat":"MKN","typ":"Sonderbau"},{"pos":"02.07.00.00.16.a","menge":"1","einh":"St","bez":"Mischbatterie","fabrikat":"KWC","typ":"24501064000"},{"pos":"02.07.00.00.17.","menge":"1","einh":"St","bez":"Heissluft-Combi-Dämpfer 20x1/1 GN","fabrikat":"MKN","typ":"FlexiCombi 20.1 FKECOD215TG2"},{"pos":"02.07.00.00.18.","menge":"2","einh":"St","bez":"Heissluft-Combi-Dämpfer 10x1/1 GN","fabrikat":"MKN","typ":"FlexiCombi 10.1 FKECOD115TG2"},{"pos":"02.07.00.00.19.","menge":"1","einh":"St","bez":"Heissluft-Combi-Dämpfer 6x1/1 GN","fabrikat":"MKN","typ":"FlexiCombi 6.1 FKECOD615TG2"},{"pos":"02.07.00.00.20.","menge":"1","einh":"St","bez":"Stapelkit für HLCD 6er/10er","fabrikat":"MKN","typ":"845906"},{"pos":"02.07.00.00.21.","menge":"1","einh":"St","bez":"Untergestell für HLCD 10er","fabrikat":"MKN","typ":"216253"},{"pos":"02.07.00.00.22.","menge":"1","einh":"Stk","bez":"Servierwagen","fabrikat":"B.Pro","typ":"SW 8x5-3"},{"pos":"02.07.00.00.23.","menge":"1","einh":"Stk","bez":"Löffel- und Gewürzwagen","fabrikat":"Hupfer","typ":"GLW 8x5"},{"pos":"02.07.00.00.24.","menge":"2","einh":"Stk","bez":"Materialwagen (Kunststoff ca. 100l)","fabrikat":"KBS","typ":"5029.0002"},{"pos":"02.07.00.00.25.","menge":"2","einh":"St","bez":"Regalwagen, hohe Ausführung, GN1/1, 1-teilig","fabrikat":"B.Pro","typ":"RWR 160"},{"pos":"02.07.00.00.26.","menge":"1","einh":"Stk","bez":"Regalwagen hohe Ausführung, GN 2/1","fabrikat":"B.Pro","typ":"RWR 161"},{"pos":"02.07.00.00.27.","menge":"1","einh":"Stk","bez":"Arbeitstisch, fahrbar","fabrikat":"Rieber","typ":"Sonderbau"}]},{"pos":"02.08.","bez":"Topfspüle","items":[{"pos":"02.08.00.00.01.","menge":"1","einh":"Stk","bez":"Handwaschbecken freihängend 400x390","fabrikat":"B.Pro","typ":"WB 4x3,2x1,5 (507010)"},{"pos":"02.08.00.00.01.a","menge":"1","einh":"Stk","bez":"Mischbatterie","fabrikat":"KWC","typ":"130.1N.000FL"},{"pos":"02.08.00.00.03.","menge":"1","einh":"St","bez":"Universaltopfspülmaschine","fabrikat":"Meiko","typ":"DV270.2"},{"pos":"02.08.00.00.04.","menge":"1","einh":"St","bez":"Auslauftisch","fabrikat":"Meiko","typ":"Sonderbau"},{"pos":"02.08.00.00.05.","menge":"1","einh":"Stk","bez":"Mischarmatur mit Mikrospraygerät und Schlauchaufroller","fabrikat":"Dr Weigert/Armag","typ":"Neomatik WSG 2 / 306.R01.1M5.0PGT"}]},{"pos":"02.09.","bez":"Tablettrückgabe","items":[{"pos":"02.09.00.00.01.","menge":"1","einh":"Stk","bez":"Tablettaufgabestation","fabrikat":"Meiko","typ":"Tablettaufgabestation"},{"pos":"02.09.00.00.02.","menge":"1","einh":"St","bez":"Vertikal Aufwärtsförderer C-Form","fabrikat":"Meiko","typ":"Vertikalaufwärtsförderer"},{"pos":"02.09.00.00.03.","menge":"4","einh":"St","bez":"Tablettrückgabewagen (2-teilig, 36 Tabletts + Korb)","fabrikat":"Scholl","typ":"RTW 210 S"}]},{"pos":"02.10.","bez":"Pufferraum","items":[{"pos":"02.10.00.00.01.","menge":"1","einh":"Stk","bez":"HWB-Ausguss-Kombination übereinander","fabrikat":"B.Pro","typ":"HAU-PW5x7 (573288)"},{"pos":"02.10.00.00.01.a","menge":"1","einh":"Stk","bez":"Mischbatterie","fabrikat":"KWC","typ":"130.1N.000FL"},{"pos":"02.10.00.00.02.","menge":"1","einh":"Stk","bez":"Arbeitstischkombination","fabrikat":"Rieber","typ":"Sonderbau"},{"pos":"02.10.00.00.03.","menge":"1","einh":"Stk","bez":"Fritteuse, Inhalt 2x12 l","fabrikat":"MKN","typ":"Optima 850"},{"pos":"02.10.00.00.04.","menge":"1","einh":"St","bez":"Frittenwanne","fabrikat":"MKN","typ":"Optima 850"},{"pos":"02.10.00.00.05.","menge":"1","einh":"Stk","bez":"Hochkühlschrank (ZK)","fabrikat":"Cool Compact","typ":"HKON057-MS"},{"pos":"02.10.00.00.06.","menge":"1","einh":"Stk","bez":"Wandhängeschrank mit Schiebetüren","fabrikat":"Rieber","typ":"Sonderbau"},{"pos":"02.10.00.00.07.","menge":"2","einh":"St","bez":"Tellerspenderwagen, beheizt 2-teilig","fabrikat":"B.Pro","typ":"2 SHE 26-31"},{"pos":"02.10.00.00.08.","menge":"1","einh":"Stk","bez":"Thermoport (max. 52 Liter)","fabrikat":"B.Pro","typ":"BPT 620 KBUH grau"},{"pos":"02.10.00.00.09.","menge":"1","einh":"St","bez":"Thermoport (max. 77 Liter)","fabrikat":"B.Pro","typ":"BPT E 18 H"},{"pos":"02.10.00.00.10.","menge":"1.1","einh":"m","bez":"Rammschutzleisten","fabrikat":"Terbrack","typ":"Tekalen"},{"pos":"02.10.00.00.11.","menge":"1","einh":"Stk","bez":"Mischarmatur mit Mikrospraygerät und Schlauchaufroller","fabrikat":"Dr Weigert/Armag","typ":"Neomatik WSG 2 / 306.R01.1M5.0PGT"}]},{"pos":"02.11.","bez":"Multifunktionscounter Wok/Pizza","items":[{"pos":"02.11.00.00.01.","menge":"1","einh":"psch","bez":"Ausgabetheke","fabrikat":"Rieber","typ":"Sonderbau"},{"pos":"02.11.00.00.02.","menge":"7.2","einh":"m","bez":"Steinabdeckung","fabrikat":"Rieber","typ":"Sonderbau"},{"pos":"02.11.00.00.03.","menge":"10.8","einh":"m","bez":"Frontverkleidung","fabrikat":"Kessler","typ":"Sonderbau"},{"pos":"02.11.00.00.04.","menge":"2","einh":"St","bez":"Tellerspenderwagen, beheizt 2-teilig","fabrikat":"B.Pro","typ":"2 SHE 26-31"},{"pos":"02.11.00.00.05.","menge":"1","einh":"St","bez":"Front Cooking Station Wok / Pizza","fabrikat":"Rieber","typ":"Sonderbau"},{"pos":"02.11.00.00.06.","menge":"1","einh":"St","bez":"Wärmeplatte GN 2/1 schwarz für Pizzen","fabrikat":"Berner","typ":"BAWH3"},{"pos":"02.11.00.00.07.","menge":"2","einh":"St","bez":"Induktions-Wok (30/60)","fabrikat":"Berner","typ":"BWKTT5"},{"pos":"02.11.00.00.08.","menge":"1","einh":"St","bez":"Warmausgabe 2x1/1 GN, Unterbau offen","fabrikat":"Rieber","typ":"Sonderbau"},{"pos":"02.11.00.00.09.","menge":"1","einh":"St","bez":"Thekenaufsatz Hustens. Wärmestrahler 2 St. à 350W","fabrikat":"Rieber","typ":"Sonderbau"},{"pos":"02.11.00.00.10.","menge":"1","einh":"St","bez":"Kassenplatz bargeldlos mit Besteck","fabrikat":"Rieber","typ":"Sonderbau"},{"pos":"02.11.00.00.11.","menge":"1","einh":"Stk","bez":"Tablettstapelwagen, offen","fabrikat":"Steinacker","typ":"Sonderbau"},{"pos":"02.11.00.00.12.","menge":"1","einh":"St","bez":"Kaltausgabe mit Kühlvitrine 3x GN 1/1 (ZK)","fabrikat":"Rieber","typ":"Sonderbau"},{"pos":"02.11.00.00.13.","menge":"1","einh":"St","bez":"Kaltausgabe mit Mulde 2/1 (ZK)","fabrikat":"Rieber","typ":"Sonderbau"},{"pos":"02.11.00.00.14.","menge":"1","einh":"St","bez":"Thekenaufsatz Hustenschutz 1-et.","fabrikat":"Rieber","typ":"Sonderbau"},{"pos":"02.11.00.00.15.","menge":"5","einh":"St","bez":"Korbrolli offen mit Griff","fabrikat":"Uni-Rack","typ":"ROL500CNSL-MAW"},{"pos":"02.11.00.00.16.","menge":"1","einh":"St","bez":"Gläserregal 3-etagig","fabrikat":"Rieber","typ":"Sonderbau"},{"pos":"02.11.00.00.17.","menge":"1","einh":"Stk","bez":"Wasserspender-Einbaugerät mit Zapfsäule","fabrikat":"Brita","typ":"EXTRA-85-C2-TG"},{"pos":"02.11.00.00.18.","menge":"1","einh":"St","bez":"Pizzaofen (2 Muffe à 5x35 cm) mit Untergestell","fabrikat":"Cuppone","typ":"Caravaggio CR535/2 TS"},{"pos":"02.11.00.00.19.","menge":"1","einh":"Stk","bez":"Kühltisch/Saladette/Pizzastation 4x1/1 GN längs (ZK)","fabrikat":"Rieber","typ":"Sonderbau"},{"pos":"02.11.00.00.20.","menge":"1","einh":"St","bez":"Nudelkocher mit Hubvorrichtung 1 Becken 30l","fabrikat":"Kienle","typ":"PKE 400 + PL2"},{"pos":"02.11.00.00.21.","menge":"1","einh":"St","bez":"Thekenrückbereich mit HWB + Spritzschutz + Spülbecken","fabrikat":"Rieber","typ":"Sonderbau"},{"pos":"02.11.00.00.21.a","menge":"1","einh":"St","bez":"Mischbatterie","fabrikat":"KWC","typ":"10.581.013.700FL"},{"pos":"02.11.00.00.21.b","menge":"1","einh":"St","bez":"Mischbatterie","fabrikat":"KWC","typ":"12.576.012.700FL"},{"pos":"02.11.00.00.22.","menge":"1","einh":"Stk","bez":"Suppenstation 1x9 Liter","fabrikat":"Mobile Containing","typ":"08.2054 Soup Well"},{"pos":"02.11.00.00.23.","menge":"1","einh":"Stk","bez":"Pizzaspinne / Tellerspinne ca. 90 Teller, fahrbar","fabrikat":"B.Pro","typ":"Servistar Gastro 80"},{"pos":"02.11.00.00.24.","menge":"3","einh":"St","bez":"Universal-Bühnenspenderwagen (50/26 cm), beheizt","fabrikat":"B.Pro","typ":"UNI-H 59/29"},{"pos":"02.11.00.00.25.","menge":"1","einh":"St","bez":"Thermoport (max. 94 Liter) beheizt","fabrikat":"B.Pro","typ":"BPT E 24 H"}]},{"pos":"02.12.","bez":"Multifunktionscounter Grill","items":[{"pos":"02.12.00.00.01.","menge":"1","einh":"Stk","bez":"Ausgabetheke","fabrikat":"Rieber","typ":"Sonderbau"},{"pos":"02.12.00.00.02.","menge":"8.2","einh":"m","bez":"Steinabdeckung","fabrikat":"Rieber","typ":"Sonderbau"},{"pos":"02.12.00.00.03.","menge":"14.5","einh":"m","bez":"Frontverkleidung","fabrikat":"Kessler","typ":"Sonderbau"},{"pos":"02.12.00.00.04.","menge":"1","einh":"St","bez":"Gläserregal 3-etagig","fabrikat":"Rieber","typ":"Sonderbau"},{"pos":"02.12.00.00.05.","menge":"5","einh":"St","bez":"Korbrolli offen mit Griff","fabrikat":"Uni-Rack","typ":"ROL500CNSL-MAW"},{"pos":"02.12.00.00.06.","menge":"1","einh":"Stk","bez":"Wasserspender-Einbaugerät mit Zapfsäule","fabrikat":"Brita","typ":"EXTRA-85-C2-TG"},{"pos":"02.12.00.00.07.","menge":"1","einh":"St","bez":"Kaltausgabe mit Mulde 2/1 (ZK)","fabrikat":"Rieber","typ":"Sonderbau"},{"pos":"02.12.00.00.08.","menge":"1","einh":"St","bez":"Thekenaufsatz Hustenschutz 1-et.","fabrikat":"Rieber","typ":"Sonderbau"},{"pos":"02.12.00.00.09.","menge":"1","einh":"St","bez":"Kaltausgabe mit Kühlvitrine 3x GN 1/1 (ZK)","fabrikat":"Rieber","typ":"Sonderbau"},{"pos":"02.12.00.00.10.","menge":"1","einh":"St","bez":"Kassenplatz bargeldlos mit Besteck","fabrikat":"Kessler","typ":"Sonderbau"},{"pos":"02.12.00.00.11.","menge":"1","einh":"Stk","bez":"Tablettstapelwagen, offen","fabrikat":"Steinacker","typ":"Sonderbau"},{"pos":"02.12.00.00.12.","menge":"1","einh":"St","bez":"Front Cooking Station Wok / Grill","fabrikat":"Rieber","typ":"Sonderbau"},{"pos":"02.12.00.00.13.","menge":"2","einh":"Stk","bez":"Griddleplatte (60/60)","fabrikat":"Berner","typ":"BGAH60"},{"pos":"02.12.00.00.14.","menge":"2","einh":"St","bez":"Induktions-Wok (30/60)","fabrikat":"Berner","typ":"BWKTT5"},{"pos":"02.12.00.00.15.","menge":"1","einh":"St","bez":"Kaltausgabe mit Mulde 6/1 (ZK)","fabrikat":"Rieber","typ":"Sonderbau"},{"pos":"02.12.00.00.16.","menge":"1","einh":"St","bez":"Thekenaufsatz Hustenschutz 1-et.","fabrikat":"Rieber","typ":"Sonderbau"},{"pos":"02.12.00.00.17.","menge":"1","einh":"Stk","bez":"Kühltisch/Saladette 4x1/1 GN längs (ZK), 800mm","fabrikat":"Rieber","typ":"Sonderbau"},{"pos":"02.12.00.00.18.","menge":"1","einh":"St","bez":"Thekenrückbereich","fabrikat":"Rieber","typ":"Sonderbau"},{"pos":"02.12.00.00.19.","menge":"2","einh":"St","bez":"Tellerspenderwagen, beheizt 2-teilig","fabrikat":"B.Pro","typ":"2 SHE 26-31"},{"pos":"02.12.00.00.20.","menge":"1","einh":"Stk","bez":"Suppenstation 1x9 Liter","fabrikat":"Mobile Containing","typ":"08.2054 Soup Well"},{"pos":"02.12.00.00.21.","menge":"1","einh":"St","bez":"Heissluft-Combi-Dämpfer 6x1/1 GN","fabrikat":"MKN","typ":"FlexiCombi 6.1 FKECOD615TG2"},{"pos":"02.12.00.00.22.","menge":"1","einh":"St","bez":"Thermoport (max. 94 Liter) beheizt","fabrikat":"B.Pro","typ":"BPT E 24 H"},{"pos":"02.12.00.00.23.","menge":"3","einh":"St","bez":"Universal-Bühnenspenderwagen (50/26 cm), beheizt","fabrikat":"B.Pro","typ":"UNI-H 59/29"}]},{"pos":"02.13.","bez":"Café Transit","items":[{"pos":"02.13.00.00.01.","menge":"1","einh":"Stk","bez":"Thekenanlage Gastseite","fabrikat":"Rieber","typ":"Sonderbau"},{"pos":"02.13.00.00.02.","menge":"11.3","einh":"m","bez":"Steinabdeckung","fabrikat":"Rieber","typ":"Sonderbau"},{"pos":"02.13.00.00.03.","menge":"6.3","einh":"m","bez":"Frontverkleidung","fabrikat":"Kessler","typ":"Sonderbau"},{"pos":"02.13.00.00.04.","menge":"1","einh":"St","bez":"Kaltausgabe mit Kühlvitrine 3x GN 1/1 (ZK) vertieft","fabrikat":"Rieber","typ":"Sonderbau"},{"pos":"02.13.00.00.05.","menge":"1","einh":"St","bez":"Theke/Kassenplatz bargeldlos mit Besteck","fabrikat":"Rieber/Kessler","typ":"Sonderbau"},{"pos":"02.13.00.00.06.","menge":"1","einh":"St","bez":"Thekenrückbereich mit HWB + Spritzschutz + Spülbecken","fabrikat":"Rieber","typ":"Sonderbau"},{"pos":"02.13.00.00.06.a","menge":"1","einh":"St","bez":"Mischbatterie","fabrikat":"KWC","typ":"10.581.013.700FL"},{"pos":"02.13.00.00.06.b","menge":"1","einh":"St","bez":"Mischbatterie","fabrikat":"Blanco","typ":"12.576.012.700FL"},{"pos":"02.13.00.00.07.","menge":"1","einh":"Stk","bez":"Gläser- und Besteckspülmaschine UT mit UOA-Modul","fabrikat":"Meiko","typ":"M-iClean UM+"},{"pos":"02.13.00.00.08.","menge":"1","einh":"St","bez":"Milchkühlschrank","fabrikat":"KBS","typ":"FKU 1805 CHR"},{"pos":"02.13.00.00.09.","menge":"2","einh":"St","bez":"Kühltisch mit Flaschenauszügen 3x1/1 GN längs (ZK)","fabrikat":"Rieber","typ":"Sonderbau"},{"pos":"02.13.00.00.12.","menge":"1","einh":"St","bez":"Doppel-Kontakt-Grill","fabrikat":"Bartscher","typ":"3600 2 R"},{"pos":"02.13.00.00.13.","menge":"1","einh":"St","bez":"Orangenpresse","fabrikat":"Santos","typ":"52C"},{"pos":"02.13.00.00.14.","menge":"1","einh":"Stk","bez":"Eiscreme Impuls-Tiefkühltruhe (EK)","fabrikat":"NordCap","typ":"Nova 22"}]},{"pos":"02.14.","bez":"Gastraum EG","items":[{"pos":"02.14.00.00.01.","menge":"1","einh":"St","bez":"Tablettrückgabewagen (2-teilig, 36 Tabletts + Korb)","fabrikat":"Scholl","typ":"RTW 110-S"}]}],"items":[]},{"pos":"03.","bez":"1. Obergeschoss","label":"1. OG","subsections":[{"pos":"03.01.","bez":"Putzmittelraum","items":[{"pos":"03.01.00.00.01.","menge":"1","einh":"St","bez":"Standausgussbecken","fabrikat":"Rieber","typ":"Sonderbau"},{"pos":"03.01.00.00.01.a","menge":"1","einh":"St","bez":"Mischbatterie","fabrikat":"KWC","typ":"10.441.013.000FL"},{"pos":"03.01.00.00.02.","menge":"3","einh":"m","bez":"Putzmittelregal mit CNS-Auslaufwanne","fabrikat":"Kohlhoff","typ":"ERS"},{"pos":"03.01.00.00.03.","menge":"1","einh":"Stk","bez":"Mischarmatur mit Mikrospraygerät und Schlauchaufroller","fabrikat":"Dr Weigert/Armag","typ":"Neomatik WSG 2 / 306.R01.1M5.0PGT"},{"pos":"03.01.00.00.04.","menge":"1","einh":"Stk","bez":"Hakenleiste für Besen etc.","fabrikat":"","typ":""}]},{"pos":"03.02.","bez":"Non Food Lager","items":[{"pos":"03.02.00.00.01.","menge":"9.4","einh":"m","bez":"Lagerregal, Aluminium, Tiefe 500 mm","fabrikat":"Kohlhoff","typ":"ARS"},{"pos":"03.02.00.00.02.","menge":"1","einh":"Stk","bez":"Plattformwagen 1000x600mm","fabrikat":"B.Pro","typ":"PFWP 10x6 (383657)"}]},{"pos":"03.04.","bez":"Flur","items":[{"pos":"03.04.00.00.01.","menge":"1","einh":"Stk","bez":"Arbeitstisch mit eingebautem HWB","fabrikat":"Rieber","typ":"Sonderbau"},{"pos":"03.04.00.00.01.a","menge":"1","einh":"Stk","bez":"Mischbatterie","fabrikat":"KWC","typ":"130.1N.000FL"},{"pos":"03.04.00.00.02.","menge":"104","einh":"m","bez":"Rammschutzleisten","fabrikat":"Terbrack","typ":"Tekalen"}]},{"pos":"03.05.","bez":"Spülküche","items":[{"pos":"03.05.00.00.01.","menge":"1","einh":"Stk","bez":"HWB-Ausguss-Kombination übereinander","fabrikat":"B.Pro","typ":"HAU-PW5x7 (573288)"},{"pos":"03.05.00.00.01.a","menge":"1","einh":"St","bez":"Mischbatterie","fabrikat":"KWC","typ":"130.1N.000FL"},{"pos":"03.05.00.00.02.","menge":"1","einh":"St","bez":"Spültisch mit 2 Becken 600x500x350 und Pendelbrause","fabrikat":"Steinacker","typ":"Sonderbau"},{"pos":"03.05.00.00.02.a","menge":"1","einh":"St","bez":"Mischbatterie","fabrikat":"KWC","typ":"K.24.42.64.000C71"},{"pos":"03.05.00.00.03.","menge":"1","einh":"Stk","bez":"Mischarmatur mit Mikrospraygerät und Schlauchaufroller","fabrikat":"Dr Weigert/Armag","typ":"Neomatik WSG 2 / 306.R01.1M5.0PGT"},{"pos":"03.05.00.00.04.","menge":"2","einh":"St","bez":"Abfallrolli 50 l","fabrikat":"WAS","typ":"4452400 + 4452001"},{"pos":"03.05.00.00.05.","menge":"1","einh":"Stk","bez":"Schaltschrank Fördertechnik","fabrikat":"Meiko","typ":"Schaltschrank"},{"pos":"03.05.00.00.06.","menge":"1","einh":"Stk","bez":"Handwaschbecken freihängend 400x390","fabrikat":"B.Pro","typ":"WB 4x3,2x1,5 (507010)"},{"pos":"03.05.00.00.06.a","menge":"1","einh":"St","bez":"Mischbatterie","fabrikat":"KWC","typ":"130.1N.000FL"},{"pos":"03.05.00.00.07.","menge":"1","einh":"St","bez":"Tablettrückgabeband","fabrikat":"Meiko","typ":"Tablettrückgabeband"},{"pos":"03.05.00.00.08.","menge":"1","einh":"Stk","bez":"Brandschutzabschluss horizontal + vertikal f. Förderband","fabrikat":"Meiko","typ":"Brandschutzabschluss"},{"pos":"03.05.00.00.09.","menge":"1","einh":"Stk","bez":"Rundriemenband 1 aus EG C-Förderer","fabrikat":"Meiko","typ":"Rundriemenband 1"},{"pos":"03.05.00.00.10.","menge":"1","einh":"Stk","bez":"Rundriemenband 2 aus 1.OG","fabrikat":"Meiko","typ":"Rundriemenband 2"},{"pos":"03.05.00.00.11.","menge":"1","einh":"Stk","bez":"Bandspülmaschine (3 Tank) mit integrierter UOA 4.100 Te./h","fabrikat":"Meiko","typ":"B-M74 V6 N04 P6"},{"pos":"03.05.00.00.12.","menge":"1","einh":"St","bez":"Sortiertisch für Gläser","fabrikat":"Meiko","typ":"Sonderbau"},{"pos":"03.05.00.00.13.","menge":"6","einh":"Stk","bez":"Tablettstapelwagen, offen","fabrikat":"B.Pro","typ":"CCE 54/38"},{"pos":"03.05.00.00.14.","menge":"4","einh":"St","bez":"Korbrolli offen mit Griff","fabrikat":"Uni-Rack","typ":"ROL500CNSL-MAW"},{"pos":"03.05.00.00.15.","menge":"6","einh":"St","bez":"Tablettrückgabewagen (2-teilig, 36 Tabletts + Korb)","fabrikat":"Scholl","typ":"RTW 210"},{"pos":"03.05.00.00.16.","menge":"3","einh":"St","bez":"Tellerspenderwagen, beheizt 2-teilig","fabrikat":"B.Pro","typ":"2 SHE 26-31"},{"pos":"03.05.00.00.17.","menge":"3","einh":"St","bez":"Universal-Bühnenspenderwagen (50/26 cm), beheizt","fabrikat":"B.Pro","typ":"UNI-H 59/29"}]},{"pos":"03.06.","bez":"Pufferraum","items":[{"pos":"03.06.00.00.01.","menge":"1","einh":"Stk","bez":"HWB-Ausguss-Kombination übereinander","fabrikat":"B.Pro","typ":"HAU-PW5x7 (573288)"},{"pos":"03.06.00.00.01.a","menge":"1","einh":"Stk","bez":"Mischbatterie","fabrikat":"KWC","typ":"130.1N.000FL"},{"pos":"03.06.00.00.02.","menge":"1","einh":"Stk","bez":"Arbeitstischkombination","fabrikat":"Rieber","typ":"Sonderbau"},{"pos":"03.06.00.00.03.","menge":"1","einh":"Stk","bez":"Fritteuse, Inhalt 1x30 l","fabrikat":"MKN","typ":"Optima 850"},{"pos":"03.06.00.00.04.","menge":"1","einh":"St","bez":"Frittenwanne","fabrikat":"MKN","typ":"Optima 850"},{"pos":"03.06.00.00.05.","menge":"1","einh":"Stk","bez":"Hochkühlschrank (ZK)","fabrikat":"Cool Compact","typ":"HKON057-MS"},{"pos":"03.06.00.00.06.","menge":"1","einh":"Stk","bez":"Wandhängeschrank mit Schiebetüren","fabrikat":"Rieber","typ":"Sonderbau"},{"pos":"03.06.00.00.07.","menge":"2","einh":"St","bez":"Tellerspenderwagen, beheizt 2-teilig","fabrikat":"B.Pro","typ":"2 SHE 26-31"},{"pos":"03.06.00.00.08.","menge":"1","einh":"Stk","bez":"Thermoport (max. 52 Liter)","fabrikat":"B.Pro","typ":"BPT 620 KBUH grau"},{"pos":"03.06.00.00.09.","menge":"1","einh":"St","bez":"Thermoport (max. 77 Liter)","fabrikat":"B.Pro","typ":"BPT E 18 H"},{"pos":"03.06.00.00.10.","menge":"2.8","einh":"m","bez":"Rammschutzleisten","fabrikat":"Terbrack","typ":"Tekalen"},{"pos":"03.06.00.00.11.","menge":"1","einh":"Stk","bez":"Mischarmatur mit Mikrospraygerät und Schlauchaufroller","fabrikat":"Dr Weigert/Armag","typ":"Neomatik WSG 2 / 306.R01.1M5.0PGT"}]},{"pos":"03.07.","bez":"Multifunktionscounter Wok","items":[{"pos":"03.07.00.00.01.","menge":"1","einh":"St","bez":"Ausgabetheke","fabrikat":"Rieber","typ":"Sonderbau"},{"pos":"03.07.00.00.02.","menge":"8.5","einh":"m","bez":"Steinabdeckung","fabrikat":"Rieber","typ":"Sonderbau"},{"pos":"03.07.00.00.03.","menge":"10.8","einh":"m","bez":"Frontverkleidung","fabrikat":"Kessler","typ":"Sonderbau"},{"pos":"03.07.00.00.04.","menge":"2","einh":"St","bez":"Tellerspenderwagen, beheizt 2-teilig","fabrikat":"B.Pro","typ":"2 SHE 26-31"},{"pos":"03.07.00.00.05.","menge":"1","einh":"St","bez":"Front Cooking Station Wok mit Korbrolli","fabrikat":"Rieber","typ":"Sonderbau"},{"pos":"03.07.00.00.06.","menge":"2","einh":"St","bez":"Induktions-Wok (30/60)","fabrikat":"Berner","typ":"BWKTT5"},{"pos":"03.07.00.00.07.","menge":"1","einh":"St","bez":"Warmausgabe 2x1/1 GN, Unterbau offen","fabrikat":"Rieber","typ":"Sonderbau"},{"pos":"03.07.00.00.08.","menge":"1","einh":"St","bez":"Thekenaufsatz Hustens. Wärmestrahler 2 St. à 350W","fabrikat":"Rieber","typ":"Sonderbau"},{"pos":"03.07.00.00.09.","menge":"1","einh":"St","bez":"Kassenplatz bargeldlos mit Besteck","fabrikat":"Rieber/Kessler","typ":"Sonderbau"},{"pos":"03.07.00.00.10.","menge":"1","einh":"Stk","bez":"Tablettstapelwagen, offen","fabrikat":"Steinacker","typ":"Sonderbau"},{"pos":"03.07.00.00.11.","menge":"1","einh":"St","bez":"Kaltausgabe mit Kühlvitrine 3x GN 1/1 (ZK)","fabrikat":"Rieber","typ":"Sonderbau"},{"pos":"03.07.00.00.12.","menge":"1","einh":"St","bez":"Kaltausgabe mit Mulde 2/1 (ZK)","fabrikat":"Rieber","typ":"Sonderbau"},{"pos":"03.07.00.00.13.","menge":"1","einh":"St","bez":"Thekenaufsatz Hustenschutz 1-et.","fabrikat":"Rieber","typ":"Sonderbau"},{"pos":"03.07.00.00.14.","menge":"5","einh":"St","bez":"Korbrolli offen mit Griff","fabrikat":"Uni-Rack","typ":"ROL500CNSL-MAW"},{"pos":"03.07.00.00.15.","menge":"1","einh":"St","bez":"Gläserregal 3-etagig","fabrikat":"Rieber","typ":"Sonderbau"},{"pos":"03.07.00.00.16.","menge":"1","einh":"Stk","bez":"Wasserspender-Einbaugerät mit Zapfsäule","fabrikat":"Brita","typ":"EXTRA-85-C2-TG"},{"pos":"03.07.00.00.17.","menge":"1","einh":"St","bez":"Heissluft-Combi-Dämpfer 6x1/1 GN","fabrikat":"MKN","typ":"FlexiCombi 6.1 FKECOD615TG2"},{"pos":"03.07.00.00.18.","menge":"1","einh":"Stk","bez":"Kühltisch/Saladette 3x1/1 GN längs (ZK), 800mm","fabrikat":"Rieber","typ":"Sonderbau"},{"pos":"03.07.00.00.19.","menge":"2","einh":"Stk","bez":"Suppenstation 2x9l","fabrikat":"Mobile Containing","typ":"08.2054 Soup Well"},{"pos":"03.07.00.00.20.","menge":"1","einh":"St","bez":"Thermoport (max. 94 Liter) beheizt","fabrikat":"B.Pro","typ":"BPT E 24 H"},{"pos":"03.07.00.00.21.","menge":"3","einh":"St","bez":"Universal-Bühnenspenderwagen (50/26 cm), beheizt","fabrikat":"B.Pro","typ":"UNI-H 59/29"}]},{"pos":"03.08.","bez":"Multifunktionscounter Grill","items":[{"pos":"03.08.00.00.01.","menge":"1","einh":"Stk","bez":"Ausgabetheke","fabrikat":"Rieber","typ":"Sonderbau"},{"pos":"03.08.00.00.02.","menge":"8.5","einh":"m","bez":"Steinabdeckung","fabrikat":"Rieber","typ":"Sonderbau"},{"pos":"03.08.00.00.03.","menge":"10.8","einh":"m","bez":"Frontverkleidung","fabrikat":"Kessler","typ":"Sonderbau"},{"pos":"03.08.00.00.04.","menge":"1","einh":"St","bez":"Tellerspenderwagen, beheizt 2-teilig","fabrikat":"B.Pro","typ":"2 SHE 26-31"},{"pos":"03.08.00.00.05.","menge":"1","einh":"St","bez":"Front Cooking Station Wok / Grill","fabrikat":"Rieber","typ":"Sonderbau"},{"pos":"03.08.00.00.06.","menge":"2","einh":"Stk","bez":"Griddleplatte (60/60)","fabrikat":"Berner","typ":"BGAH60"},{"pos":"03.08.00.00.07.","menge":"1","einh":"St","bez":"Warmausgabe 2x1/1 GN, Unterbau offen","fabrikat":"Rieber","typ":"Sonderbau"},{"pos":"03.08.00.00.08.","menge":"1","einh":"St","bez":"Thekenaufsatz Hustens. Wärmestrahler 2 St. à 350W","fabrikat":"Rieber","typ":"Sonderbau"},{"pos":"03.08.00.00.09.","menge":"1","einh":"St","bez":"Kassenplatz bargeldlos mit Besteck","fabrikat":"Rieber","typ":"Sonderbau"},{"pos":"03.08.00.00.10.","menge":"1","einh":"Stk","bez":"Tablettstapelwagen, offen","fabrikat":"Steinacker","typ":"Sonderbau"},{"pos":"03.08.00.00.11.","menge":"1","einh":"St","bez":"Kaltausgabe mit Kühlvitrine 3x GN 1/1 (ZK)","fabrikat":"Rieber","typ":"Sonderbau"},{"pos":"03.08.00.00.12.","menge":"1","einh":"St","bez":"Kaltausgabe mit Mulde 2/1 (ZK)","fabrikat":"Rieber","typ":"Sonderbau"},{"pos":"03.08.00.00.13.","menge":"1","einh":"St","bez":"Thekenaufsatz Hustenschutz 1-et.","fabrikat":"Rieber","typ":"Sonderbau"},{"pos":"03.08.00.00.14.","menge":"5","einh":"St","bez":"Korbrolli offen mit Griff","fabrikat":"Uni-Rack","typ":"ROL500CNSL-MAW"},{"pos":"03.08.00.00.15.","menge":"1","einh":"St","bez":"Gläserregal 3-etagig","fabrikat":"Rieber","typ":"Sonderbau"},{"pos":"03.08.00.00.16.","menge":"1","einh":"Stk","bez":"Wasserspender-Einbaugerät mit Zapfsäule","fabrikat":"Brita","typ":"EXTRA-85-C2-TG"},{"pos":"03.08.00.00.17.","menge":"1","einh":"St","bez":"Thekenrückbereich mit HWB + Spritzschutz + Spülbecken","fabrikat":"Rieber","typ":"Sonderbau"},{"pos":"03.08.00.00.17.a","menge":"1","einh":"St","bez":"Mischbatterie","fabrikat":"KWC","typ":"10.581.013.700FL"},{"pos":"03.08.00.00.17.b","menge":"1","einh":"St","bez":"Mischbatterie","fabrikat":"KWC","typ":"12.576.012.700FL"},{"pos":"03.08.00.00.18.","menge":"1","einh":"Stk","bez":"Kühltisch/Saladette 2x1/1 GN längs (ZK), 800mm","fabrikat":"Rieber","typ":"Sonderbau"},{"pos":"03.08.00.00.19.","menge":"1","einh":"St","bez":"Thekenrückbereich","fabrikat":"Rieber","typ":"Sonderbau"},{"pos":"03.08.00.00.20.","menge":"1","einh":"St","bez":"Heissluft-Combi-Dämpfer 6x1/1 GN","fabrikat":"MKN","typ":"FlexiCombi 6.1 FKECOD615TG2"}]},{"pos":"03.09.","bez":"Gastraum 1. OG","items":[{"pos":"03.09.00.00.01.","menge":"1","einh":"Stk","bez":"Mikrowellenstation mit 1 Becken, Besteckstation","fabrikat":"Kessler","typ":"Sonderbau"},{"pos":"03.09.00.00.01.a","menge":"1","einh":"Stk","bez":"Mischbatterie","fabrikat":"Grohe","typ":"atrio 24 362 DC0"},{"pos":"03.09.00.00.02.","menge":"3","einh":"St","bez":"Mikrowellengerät - Einbau","fabrikat":"Bosch","typ":"CEG732XB1"},{"pos":"03.09.00.00.03.","menge":"2.65","einh":"m","bez":"Steinabdeckung","fabrikat":"Marmor Center","typ":"Sonderbau"},{"pos":"03.09.00.00.04.","menge":"4.8","einh":"m","bez":"Frontverkleidung","fabrikat":"Kessler","typ":"Sonderbau"}]},{"pos":"03.10.","bez":"Konferenz SB Kaffeestation","items":[{"pos":"03.10.00.00.01.","menge":"2","einh":"Stk","bez":"Kaffeetheke","fabrikat":"Kessler","typ":"Sonderbau"},{"pos":"03.10.00.00.02.","menge":"2","einh":"Stk","bez":"Milchdispenser mit elektr. Kühlung","fabrikat":"Frilich","typ":"3135/010"},{"pos":"03.10.00.00.03.","menge":"2","einh":"Stk","bez":"Wasserspender-Einbaugerät mit Zapfsäule","fabrikat":"Brita","typ":"EXTRA-85-C2-TG"},{"pos":"03.10.00.00.04.","menge":"1","einh":"Stk","bez":"Tablettschrank","fabrikat":"Rieber","typ":"Sonderbau"},{"pos":"03.10.00.00.05.","menge":"2","einh":"Stk","bez":"Regale für Tassen 2-etagig","fabrikat":"Kessler","typ":"Sonderbau"},{"pos":"03.10.00.00.06.","menge":"6","einh":"m","bez":"Steinabdeckung","fabrikat":"Marmor Center","typ":"Sonderbau"},{"pos":"03.10.00.00.07.","menge":"8.4","einh":"m","bez":"Frontverkleidung","fabrikat":"Kessler","typ":"Sonderbau"},{"pos":"03.10.00.00.08.","menge":"2","einh":"Stk","bez":"Unterbaukühlschrank (EK) mit Glastür","fabrikat":"NordCap","typ":"M95 black"}]},{"pos":"03.11.","bez":"Pantry","items":[{"pos":"03.11.00.00.01.","menge":"1","einh":"Stk","bez":"Hochkühlschrank GN 2/1 (EK)","fabrikat":"Cool Compact","typ":"HKMN057-MS"},{"pos":"03.11.00.00.02.","menge":"1","einh":"St","bez":"L-Arbeitstisch mit HWB, Becken 500x500x250 m. Spritzschutz","fabrikat":"Rieber","typ":"Sonderbau"},{"pos":"03.11.00.00.02.a","menge":"1","einh":"St","bez":"Mischbatterie","fabrikat":"KWC","typ":"130.1N.000FL"},{"pos":"03.11.00.00.02.b","menge":"1","einh":"St","bez":"Mischbatterie","fabrikat":"KWC","typ":"10.441.013.000FL"},{"pos":"03.11.00.00.03.","menge":"1","einh":"St","bez":"Abfallrolli 50 l","fabrikat":"WAS","typ":"4452400 + 4452001"},{"pos":"03.11.00.00.04.","menge":"2","einh":"Stk","bez":"Wandhängeschrank mit Schiebetüren","fabrikat":"Rieber","typ":"Sonderbau"},{"pos":"03.11.00.00.05.","menge":"1","einh":"Stk","bez":"Gläser- und Besteckspülmaschine UT mit UOA-Modul","fabrikat":"Meiko","typ":"M-iClean UM+"},{"pos":"03.11.00.00.06.","menge":"1","einh":"Stk","bez":"Mengenbrüher mit Filter, 2 Thermobehälter 2x10Liter","fabrikat":"Bonamat","typ":"B10 HW"},{"pos":"03.11.00.00.07.","menge":"1","einh":"St","bez":"Korbrolli offen mit Griff","fabrikat":"Uni-Rack","typ":"ROL500CNSL-MAW"},{"pos":"03.11.00.00.08.","menge":"1","einh":"Stk","bez":"Servierwagen 3 Borde","fabrikat":"B.Pro","typ":"SW10 x 6-3"},{"pos":"03.11.00.00.09.","menge":"2.6","einh":"m","bez":"Rammschutzleisten","fabrikat":"Terbrack","typ":"Tekalen"}]}],"items":[]},{"pos":"10.","bez":"3. Obergeschoss Code Factory","label":"3. OG","subsections":[{"pos":"10.01.","bez":"Code Factory 3. OG","items":[{"pos":"10.01.00.00.01.","menge":"2","einh":"Stk","bez":"Semiprofessionelle-Spülmaschine","fabrikat":"Miele","typ":"PFD 104 SCVI XXL"},{"pos":"10.01.00.00.03.","menge":"1","einh":"St","bez":"Mikrowellengerät - Freistehend","fabrikat":"Bosch","typ":"FEL023MS2"},{"pos":"10.01.00.00.04.","menge":"2","einh":"Stk","bez":"Unterbaukühlschrank (EK) mit Glastür","fabrikat":"NordCap","typ":"M95 Black"},{"pos":"10.01.00.00.05.","menge":"2","einh":"Stk","bez":"Einbaukühlschrank (EK)","fabrikat":"Bosch","typ":"KIR41VFE0"}]}],"items":[]},{"pos":"04.","bez":"5. Obergeschoss","label":"5. OG","subsections":[{"pos":"04.01.","bez":"Café Bistro im Literaturcafé (SB Station)","items":[{"pos":"04.01.00.00.04.","menge":"1","einh":"Stk","bez":"Semiprofessionelle-Spülmaschine","fabrikat":"Miele","typ":"PFD 104 SCVI XXL"}]}],"items":[]},{"pos":"05.","bez":"11. Obergeschoss + Outdoor","label":"11. OG","subsections":[{"pos":"05.01.","bez":"Pantry","items":[{"pos":"05.01.00.00.01.","menge":"1","einh":"St","bez":"Handwaschbecken eingebaut","fabrikat":"Rieber","typ":"Sonderbau"},{"pos":"05.01.00.00.01.a","menge":"1","einh":"St","bez":"Mischbatterie","fabrikat":"KWC","typ":"130.1N.000FL"},{"pos":"05.01.00.00.02.","menge":"1","einh":"St","bez":"Abfallrolli 50 l","fabrikat":"WAS","typ":"4452400 + 4452001"},{"pos":"05.01.00.00.03.","menge":"1","einh":"St","bez":"Arbeitstisch mit Becken 500x500x250 m. Spritzschutz","fabrikat":"Rieber","typ":"Sonderbau"},{"pos":"05.01.00.00.03.a","menge":"1","einh":"St","bez":"Mischbatterie","fabrikat":"KWC","typ":"10.441.013.000FL"},{"pos":"05.01.00.00.04.","menge":"2","einh":"Stk","bez":"Wandhängeschrank mit Schiebetüren","fabrikat":"Rieber","typ":"Sonderbau"},{"pos":"05.01.00.00.05.","menge":"2","einh":"Stk","bez":"Hochkühlschrank (ZK)","fabrikat":"Cool Compact","typ":"HKON057-MS"},{"pos":"05.01.00.00.06.","menge":"1","einh":"St","bez":"Zulauf-Spültisch mit Becken","fabrikat":"Rieber","typ":"Sonderbau"},{"pos":"05.01.00.00.06.a","menge":"1","einh":"St","bez":"Mischbatterie","fabrikat":"KWC","typ":"K.24.42.64.000C71"},{"pos":"05.01.00.00.07.","menge":"1","einh":"Stk","bez":"Osmoseanlage","fabrikat":"Meiko","typ":"GioModul"},{"pos":"05.01.00.00.08.","menge":"1","einh":"Stk","bez":"Durchschub-Geschirr-Spülmaschine","fabrikat":"Meiko","typ":"M-iClean HM"},{"pos":"05.01.00.00.09.","menge":"1","einh":"St","bez":"Auslauftisch","fabrikat":"Rieber","typ":"Sonderbau"},{"pos":"05.01.00.00.10.","menge":"2","einh":"Stk","bez":"Korbbord","fabrikat":"Rieber","typ":"Sonderbau"},{"pos":"05.01.00.00.11.","menge":"1","einh":"Stk","bez":"Servierwagen 3 Borde","fabrikat":"B.Pro","typ":"SW10 x 6-3"},{"pos":"05.01.00.00.12.","menge":"1","einh":"St","bez":"Thermoport (max. 94 Liter) beheizt","fabrikat":"B.Pro","typ":"BPT E 24 H"},{"pos":"05.01.00.00.13.","menge":"2","einh":"Stk","bez":"Thermoport (max. 52 Liter)","fabrikat":"B.Pro","typ":"BPT 620 KBUH grau"},{"pos":"05.01.00.00.14.","menge":"1","einh":"St","bez":"Korbrolli offen mit Griff","fabrikat":"Uni-Rack","typ":"ROL500CNSL-MAW"},{"pos":"05.01.00.00.15.","menge":"2","einh":"St","bez":"Tablettrückgabewagen (2-teilig, 36 Tabletts + Korb)","fabrikat":"Scholl","typ":"RTW 210"},{"pos":"05.01.00.00.16.","menge":"15","einh":"m","bez":"Rammschutzleisten","fabrikat":"Terbrack","typ":"Tekalen"}]},{"pos":"05.02.","bez":"Vitalbar","items":[{"pos":"05.02.00.00.01.","menge":"1","einh":"Stk","bez":"Thekenanlage rund mit Barbrett","fabrikat":"Prisma","typ":"Sonderbau"},{"pos":"05.02.00.00.02.","menge":"14.6","einh":"m","bez":"Steinabdeckung","fabrikat":"Prisma","typ":"Sonderbau"},{"pos":"05.02.00.00.03.","menge":"1","einh":"St","bez":"Arbeitstisch mit HWB und Becken 500x500x250 m. Spritzschutz","fabrikat":"Prisma","typ":"Sonderbau"},{"pos":"05.02.00.00.03.a","menge":"1","einh":"St","bez":"Mischbatterie","fabrikat":"KWC","typ":"10.581.013.700FL"},{"pos":"05.02.00.00.03.b","menge":"1","einh":"St","bez":"Mischbatterie","fabrikat":"KWC","typ":"12.576.012.700FL"},{"pos":"05.02.00.00.04.","menge":"1","einh":"St","bez":"Orangenpresse","fabrikat":"Santos","typ":"52C"},{"pos":"05.02.00.00.05.","menge":"2","einh":"Stk","bez":"Smoothies Mixer","fabrikat":"Vitamix","typ":"The Quiet One 90261"},{"pos":"05.02.00.00.07.","menge":"1","einh":"Stk","bez":"Milchkühlschrank Untertisch","fabrikat":"NordCap","typ":"M95 black"},{"pos":"05.02.00.00.09.","menge":"1","einh":"St","bez":"Kaltausgabe mit Kühlvitrine (ZK) vertieft eingebaut, rund","fabrikat":"Prisma","typ":"Sonderbau"},{"pos":"05.02.00.00.10.","menge":"1","einh":"St","bez":"Kassenplatz bargeldlos mit Besteck","fabrikat":"Prisma","typ":"Sonderbau"},{"pos":"05.02.00.00.11.","menge":"1","einh":"St","bez":"Kühltisch 3x1/1 GN längs (ZK), 800mm tief","fabrikat":"Prisma","typ":"Sonderbau"},{"pos":"05.02.00.00.12.","menge":"1","einh":"Stk","bez":"Wasserspender-Einbaugerät mit Zapfsäule","fabrikat":"Brita","typ":"EXTRA-85-C2-TG"}]},{"pos":"05.03.","bez":"Dachterrasse – Lagerbereich","items":[{"pos":"05.03.00.00.01.","menge":"1","einh":"St","bez":"Standausgussbecken 650x700","fabrikat":"Rieber","typ":"Sonderbau"}]},{"pos":"05.04.","bez":"Getränkebar","items":[{"pos":"05.04.00.00.01.","menge":"13","einh":"St","bez":"Mobile Barelemente","fabrikat":"Plust","typ":"Bartolomeo"},{"pos":"05.04.00.00.01.a","menge":"1","einh":"St","bez":"Mischbatterie","fabrikat":"KWC","typ":"10.371.023.000FL"},{"pos":"05.04.00.00.02.","menge":"3","einh":"St","bez":"Hochkühlschrank mit Glastüre, fahrbar","fabrikat":"Cool Compact","typ":"HKMNV57-MS"},{"pos":"05.04.00.00.03.","menge":"1","einh":"St","bez":"Mobile Bierzapfanlage für 2 Fässer","fabrikat":"Hefa","typ":"Sonderbau"}]},{"pos":"05.05.","bez":"Grillstation","items":[{"pos":"05.05.00.00.01.","menge":"2","einh":"Stk","bez":"XXL BBQ Gas Grill","fabrikat":"BBQ Master","typ":"XXL Pro"},{"pos":"05.05.00.00.02.","menge":"3","einh":"Stk","bez":"Arbeitstisch, fahrbar 600 mm","fabrikat":"Rieber","typ":"Sonderbau"},{"pos":"05.05.00.00.03.","menge":"1","einh":"St","bez":"Mobiles HWB","fabrikat":"Lioninox","typ":"61430"},{"pos":"05.05.00.00.04.","menge":"1","einh":"St","bez":"Thermoport (max. 94 Liter) beheizt","fabrikat":"B.Pro","typ":"BPT E 24 H"},{"pos":"05.05.00.00.05.","menge":"2","einh":"St","bez":"Tellerspenderwagen, beheizt 2-teilig","fabrikat":"B.Pro","typ":"2 SHE 26-31"},{"pos":"05.05.00.00.06.","menge":"1","einh":"Stk","bez":"Servierwagen 3 Borde","fabrikat":"B.Pro","typ":"SW10 x 6-3"},{"pos":"05.05.00.00.06.a","menge":"1","einh":"Stk","bez":"Wasserspender-Einbaugerät mit Zapfsäule","fabrikat":"Brita","typ":"EXTRA-85-C2-TG"}]}],"items":[]},{"pos":"06.","bez":"17. Obergeschoss","label":"17. OG","subsections":[{"pos":"06.01.","bez":"Konferenz SB Kaffeestation","items":[{"pos":"06.01.00.00.01.","menge":"1","einh":"Stk","bez":"Kaffeetheke","fabrikat":"Kessler","typ":"Sonderbau"},{"pos":"06.01.00.00.02.","menge":"1","einh":"Stk","bez":"Milchdispenser mit elektr. Kühlung","fabrikat":"Frilich","typ":"3135/010"},{"pos":"06.01.00.00.03.","menge":"1","einh":"Stk","bez":"Wasserspender-Einbaugerät mit Zapfsäule","fabrikat":"Brita","typ":"EXTRA-85-C2-TG"},{"pos":"06.01.00.00.04.","menge":"1","einh":"Stk","bez":"Regale für Tassen 2-etagig","fabrikat":"Kessler","typ":"Sonderbau"},{"pos":"06.01.00.00.05.","menge":"1","einh":"Stk","bez":"Unterbaukühlschrank (EK) mit Glastür","fabrikat":"NordCap","typ":"M95 black"},{"pos":"06.01.00.00.06.","menge":"3.1","einh":"m","bez":"Steinabdeckung","fabrikat":"MarmorCenter","typ":"Sonderbau"},{"pos":"06.01.00.00.07.","menge":"4.1","einh":"m","bez":"Frontverkleidung","fabrikat":"Kessler","typ":"Sonderbau"},{"pos":"06.01.00.00.08.a","menge":"1","einh":"St","bez":"Wasserspender-Einbaugerät mit Zapfsäule","fabrikat":"Brita","typ":"EXTRA-85-C2-TG"}]},{"pos":"06.02.","bez":"Pantry","items":[{"pos":"06.02.00.00.01.","menge":"2","einh":"Stk","bez":"Hochkühlschrank (ZK)","fabrikat":"Cool Compact","typ":"HKON057-MS"},{"pos":"06.02.00.00.02.","menge":"1","einh":"St","bez":"L-Arbeitstisch mit HWB, Becken 500x500x250 m. Spritzschutz","fabrikat":"Steinacker","typ":"Sonderbau"},{"pos":"06.02.00.00.02.a","menge":"1","einh":"St","bez":"Mischbatterie","fabrikat":"KWC","typ":"130.1N.000FL"},{"pos":"06.02.00.00.02.b","menge":"1","einh":"St","bez":"Mischbatterie","fabrikat":"KWC","typ":"10.441.013.000FL"},{"pos":"06.02.00.00.03.","menge":"1","einh":"St","bez":"Abfallrolli 50 l","fabrikat":"WAS","typ":"4452400 + 4452001"},{"pos":"06.02.00.00.04.","menge":"4","einh":"Stk","bez":"Wandhängeschrank mit Schiebetüren","fabrikat":"Steinacker","typ":"Sonderbau"},{"pos":"06.02.00.00.05.","menge":"1","einh":"Stk","bez":"Gläser- und Besteckspülmaschine UT mit UOA-Modul","fabrikat":"Meiko","typ":"M-iClean UM+"},{"pos":"06.02.00.00.06.","menge":"2","einh":"St","bez":"Korbrolli offen mit Griff","fabrikat":"Uni-Rack","typ":"ROL500CNSL-MAW"},{"pos":"06.02.00.00.07.","menge":"2","einh":"Stk","bez":"Servierwagen 3 Borde","fabrikat":"B.Pro","typ":"SW10 x 6-3"},{"pos":"06.02.00.00.08.","menge":"16.5","einh":"m","bez":"Rammschutzleisten","fabrikat":"Terbrack","typ":"Tekalen"}]}],"items":[]},{"pos":"07.","bez":"18. Obergeschoss","label":"18. OG","subsections":[{"pos":"07.01.","bez":"SB Kaffeestation","items":[{"pos":"07.01.00.00.01.","menge":"1","einh":"Stk","bez":"Kaffeetheke","fabrikat":"Kessler","typ":"Sonderbau"},{"pos":"07.01.00.00.02.","menge":"1","einh":"Stk","bez":"Milchdispenser mit elektr. Kühlung","fabrikat":"Frilich","typ":"3135/010"},{"pos":"07.01.00.00.03.","menge":"1","einh":"Stk","bez":"Wasserspender-Einbaugerät mit Zapfsäule","fabrikat":"Brita","typ":"EXTRA-85-C2-TG"},{"pos":"07.01.00.00.04.","menge":"1","einh":"Stk","bez":"Regale für Gläser 2-etagig","fabrikat":"Kessler","typ":"Sonderbau"},{"pos":"07.01.00.00.05.","menge":"1","einh":"Stk","bez":"Unterbaukühlschrank (EK) mit Glastür","fabrikat":"NordCap","typ":"M95 black"},{"pos":"07.01.00.00.06.","menge":"2.7","einh":"m","bez":"Steinabdeckung","fabrikat":"Marmor Center","typ":"Sonderbau"},{"pos":"07.01.00.00.07.","menge":"3.5","einh":"m","bez":"Frontverkleidung","fabrikat":"Kessler","typ":"Sonderbau"}]},{"pos":"07.02.","bez":"Pantry","items":[{"pos":"07.02.00.00.01.","menge":"1","einh":"Stk","bez":"Hochkühlschrank (ZK)","fabrikat":"Cool Compact","typ":"HKON057-MS"},{"pos":"07.02.00.00.02.","menge":"1","einh":"St","bez":"Arbeitstisch mit HWB, Becken 400x400x250 m. Spritzschutz","fabrikat":"Steinacker","typ":"Sonderbau"},{"pos":"07.02.00.00.02.a","menge":"1","einh":"St","bez":"Mischbatterie","fabrikat":"KWC","typ":"130.1N.000FL"},{"pos":"07.02.00.00.02.b","menge":"1","einh":"St","bez":"Mischbatterie","fabrikat":"KWC","typ":"10.441.013.000FL"},{"pos":"07.02.00.00.03.","menge":"1","einh":"St","bez":"Abfallrolli 50 l","fabrikat":"WAS","typ":"4452400 + 4452001"},{"pos":"07.02.00.00.04.","menge":"1","einh":"Stk","bez":"Wandhängeschrank mit Schiebetüren","fabrikat":"Steinacker","typ":"Sonderbau"},{"pos":"07.02.00.00.05.","menge":"1","einh":"Stk","bez":"Servierwagen 3 Borde","fabrikat":"B.Pro","typ":"SW10 x 6-3"},{"pos":"07.02.00.00.06.","menge":"1","einh":"St","bez":"Korbrolli offen mit Griff","fabrikat":"Uni-Rack","typ":"ROL500CNSL-MAW"},{"pos":"07.02.00.00.07.","menge":"1","einh":"Stk","bez":"Thermoport (max. 52 Liter)","fabrikat":"B.Pro","typ":"BPT 620 KBUH grau"},{"pos":"07.02.00.00.08.","menge":"8","einh":"m","bez":"Rammschutzleisten","fabrikat":"Terbrack","typ":"Tekalen"}]},{"pos":"07.03.","bez":"Skybar","items":[{"pos":"07.03.00.00.01.","menge":"1","einh":"Stk","bez":"Thekenanlage mit HWB, Spritzschutz, Becken, Tropfblech","fabrikat":"Prisma","typ":"Sonderbau"},{"pos":"07.03.00.00.01.a","menge":"1","einh":"St","bez":"Mischbatterie","fabrikat":"KWC","typ":"10.581.013.700FL"},{"pos":"07.03.00.00.01.b","menge":"1","einh":"St","bez":"Mischbatterie","fabrikat":"KWC","typ":"12.576.012.700FL"},{"pos":"07.03.00.00.02.","menge":"1","einh":"Stk","bez":"Gläser- und Besteckspülmaschine UT mit UOA-Modul","fabrikat":"Meiko","typ":"M-iClean UM+"},{"pos":"07.03.00.00.05.","menge":"1","einh":"St","bez":"Kaltausgabe mit Kühlvitrine 2x GN 1/1 (ZK)","fabrikat":"Prisma","typ":"Sonderbau"},{"pos":"07.03.00.00.06.","menge":"1","einh":"St","bez":"Kassenplatz bargeldlos mit Besteck","fabrikat":"Prisma","typ":"Sonderbau"},{"pos":"07.03.00.00.07.","menge":"1","einh":"Stk","bez":"Eiswürfelbereiter Tg-Leistung 25kg","fabrikat":"Wessamat","typ":"W 23 LE"},{"pos":"07.03.00.00.08.","menge":"1","einh":"St","bez":"Kühltisch mit Flaschenauszügen 2x1/1 GN längs (ZK)","fabrikat":"Prisma","typ":"Sonderbau"},{"pos":"07.03.00.00.09.","menge":"1","einh":"St","bez":"Biertheke für 1x50l versenkbar / demontierbar","fabrikat":"Prisma","typ":"Sonderbau"},{"pos":"07.03.00.00.10.","menge":"11","einh":"m","bez":"Steinabdeckung","fabrikat":"Prisma","typ":"Sonderbau"}]}],"items":[]}];;
 
@@ -227,11 +266,13 @@ function savePos(pos) {
         g: s.g, m: s.m, a: s.a, sa: s.sa, ea: s.ea, ib: s.ib, ew: s.ew,
         note: s.note,
         fotos: JSON.stringify(s.fotos),
+        pdfs: JSON.stringify(s.pdfs||[]),
         updated_at: new Date().toISOString()
       })
     })
     .then(res => {
       if (!res.ok) res.text().then(t => console.warn('Speichern Fehler:', t));
+      else updLastEdit(new Date().toISOString());
     })
     .catch(e => console.warn('Speichern fehlgeschlagen:', e));
     delete SAVE_TIMERS[pos];
@@ -239,7 +280,7 @@ function savePos(pos) {
 }
 let ACT=DATA[0].pos, FPOS=null;
 
-function gs(p){if(!ST[p])ST[p]={g:false,m:false,a:false,sa:false,ea:false,ib:false,ew:false,fotos:[],note:''};return ST[p];}
+function gs(p){if(!ST[p])ST[p]={g:false,m:false,a:false,sa:false,ea:false,ib:false,ew:false,fotos:[],pdfs:[],note:''};if(!ST[p].pdfs)ST[p].pdfs=[];return ST[p];}
 function ist(p){const s=gs(p);if(s.g||s.m||s.a||s.ib||s.ew||s.fotos.length||s.note){const n=[s.g,s.m,s.a,s.sa,s.ea,s.ib,s.ew].filter(Boolean).length;return n===7?'done':'part';}return 'open';}
 function sp(p){return p.replace(/\./g,'_');}
 
@@ -372,18 +413,49 @@ function updProg(pos){
 // FOTO
 function trf(pos){FPOS=pos;const fi=document.getElementById('fi');fi.value='';fi.click();}
 
+// Bildkomprimierung - HEIC-sicher mit Timeout
+async function tryCompressImage(file){
+  if(file.type.includes('heic')||file.type.includes('heif')) return file;
+  if(!file.type.startsWith('image/')) return file;
+  if(file.size < 500*1024) return file;
+  return new Promise((resolve)=>{
+    const timeout=setTimeout(()=>resolve(file),5000);
+    try{
+      const reader=new FileReader();
+      reader.onerror=()=>{clearTimeout(timeout);resolve(file);};
+      reader.onload=(e)=>{
+        const img=new Image();
+        img.onerror=()=>{clearTimeout(timeout);resolve(file);};
+        img.onload=()=>{
+          clearTimeout(timeout);
+          try{
+            let w=img.width,h=img.height;const max=1600;
+            if(w>max){h=h*max/w;w=max;}
+            if(h>max){w=w*max/h;h=max;}
+            const canvas=document.createElement('canvas');
+            canvas.width=w;canvas.height=h;
+            canvas.getContext('2d').drawImage(img,0,0,w,h);
+            canvas.toBlob(blob=>resolve(blob&&blob.size<file.size?blob:file),'image/jpeg',0.75);
+          }catch(err){resolve(file);}
+        };
+        img.src=e.target.result;
+      };
+      reader.readAsDataURL(file);
+    }catch(err){clearTimeout(timeout);resolve(file);}
+  });
+}
+
 document.getElementById('fi').addEventListener('change',async function(e){
   const file=e.target.files[0];
   if(!file||!FPOS)return;
-  showLoader('Foto wird hochgeladen...');
+  showLoader('Foto wird komprimiert...');
   try {
-    // Determine file extension from type
-    const ext = file.type === 'image/png' ? 'png' : 
-                file.type === 'image/gif' ? 'gif' : 'jpg';
-    const fname = FPOS.replace(/\./g,'_') + '_' + Date.now() + '.' + ext;
-    const contentType = file.type || 'image/jpeg';
+    const uploadFile = await tryCompressImage(file);
+    const origKB = Math.round(file.size/1024);
+    const newKB = Math.round(uploadFile.size/1024);
+    showLoader('Foto wird hochgeladen... ('+newKB+' KB, vorher '+origKB+' KB)');
+    const fname = FPOS.replace(/\./g,'_') + '_' + Date.now() + '.jpg';
     
-    // Upload with 60 second timeout - direct upload, no resize
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 60000);
     
@@ -392,10 +464,10 @@ document.getElementById('fi').addEventListener('change',async function(e){
       headers:{
         'apikey':SB_KEY,
         'Authorization':'Bearer '+SB_KEY,
-        'Content-Type':contentType,
+        'Content-Type':'image/jpeg',
         'x-upsert':'true'
       },
-      body:file,
+      body:uploadFile,
       signal: controller.signal
     });
     clearTimeout(timeout);
@@ -540,6 +612,8 @@ function restoreUI() {
     if(anm && s.note) { anm.value = s.note; autoR(anm); }
     // Restore fotos
     if(s.fotos && s.fotos.length) updFG(pos);
+    // Restore protokolle
+    if(s.pdfs && s.pdfs.length) updPG(pos);
     // Restore progress
     updProg(pos);
   });
@@ -551,18 +625,30 @@ function autoR(el){el.style.height='auto';el.style.height=el.scrollHeight+'px';}
 // EXPORT
 
 async function downloadZip() {
-  // Collect all foto URLs
   const urls = [];
   DATA.forEach(sec=>sec.subsections.forEach(sub=>sub.items.forEach(item=>{
     const s=gs(item.pos);
     if(s.fotos && s.fotos.length) s.fotos.forEach(u=>urls.push({url:u, pos:item.pos}));
   })));
   if(urls.length===0){alert('Keine Fotos vorhanden.');return;}
-  
-  // Open all foto URLs in new tabs as fallback (ZIP requires JSZip library)
-  if(confirm(`${urls.length} Foto(s) gefunden. Fotos werden in neuen Tabs geöffnet zum manuellen Speichern. OK?`)){
-    urls.forEach((f,i)=>setTimeout(()=>window.open(f.url,'_blank'),i*200));
-  }
+  if(!confirm(urls.length+' Foto(s) werden als ZIP heruntergeladen. OK?'))return;
+  showLoader('Fotos werden gepackt...');
+  try{
+    const zip=new JSZip();
+    let n=1;
+    for(const f of urls){
+      const res=await fetch(f.url,{headers:{'apikey':SB_KEY}});
+      const blob=await res.blob();
+      const folder=f.pos.replace(/\./g,'_');
+      zip.file(folder+'/Foto_'+(n++)+'.jpg', blob);
+    }
+    const content=await zip.generateAsync({type:'blob'});
+    const a=document.createElement('a');
+    a.href=URL.createObjectURL(content);
+    a.download='Fotos_Berlin_Upbeat_'+new Date().toISOString().slice(0,10)+'.zip';
+    document.body.appendChild(a);a.click();a.remove();
+    hideLoader();
+  }catch(e){hideLoader();alert('ZIP fehlgeschlagen: '+e.message);}
 }
 
 function expKunde(withFotos=false){
@@ -725,12 +811,13 @@ function saveFotos(pos) {
     },
     body: JSON.stringify({
       pos: pos,
-      g: s.g, m: s.m, a: s.a, ib: s.ib, ew: s.ew,
+      g: s.g, m: s.m, a: s.a, sa: s.sa, ea: s.ea, ib: s.ib, ew: s.ew,
       note: s.note,
       fotos: JSON.stringify(s.fotos),
+      pdfs: JSON.stringify(s.pdfs||[]),
       updated_at: new Date().toISOString()
     })
-  }).catch(e => console.warn('Foto-URLs speichern fehlgeschlagen:', e));
+  }).catch(e => console.warn('Speichern fehlgeschlagen:', e));
 }
 
 function saveState() { /* no-op, saving happens per position */ }
@@ -741,21 +828,35 @@ async function loadState() {
     showLoader('Daten werden geladen...');
     const data = await sbFetch('GET', 'positionen?select=*');
     if (data) {
+      let newest = null;
       data.forEach(row => {
-        let fotos = [];
+        let fotos = [], pdfs = [];
         try { fotos = row.fotos ? JSON.parse(row.fotos) : []; } catch(e) {}
+        try { pdfs = row.pdfs ? JSON.parse(row.pdfs) : []; } catch(e) {}
         ST[row.pos] = {
           g: row.g||false, m: row.m||false, a: row.a||false,
           sa: row.sa||false, ea: row.ea||false, ib: row.ib||false, ew: row.ew||false,
-          note: row.note||'', fotos: fotos
+          note: row.note||'', fotos: fotos, pdfs: pdfs
         };
+        if (row.updated_at && (!newest || row.updated_at > newest)) newest = row.updated_at;
       });
+      updLastEdit(newest);
     }
     hideLoader();
   } catch(e) {
     hideLoader();
     console.warn('Laden fehlgeschlagen:', e);
   }
+}
+
+function updLastEdit(iso){
+  const el = document.getElementById('lastEdit');
+  if(!el) return;
+  if(!iso){ el.textContent='–'; return; }
+  const d = new Date(iso);
+  const dd = d.toLocaleDateString('de-DE',{day:'2-digit',month:'2-digit',year:'numeric'});
+  const tt = d.toLocaleTimeString('de-DE',{hour:'2-digit',minute:'2-digit'});
+  el.textContent = dd + ' ' + tt;
 }
 
 function showLoader(msg) {
@@ -791,14 +892,18 @@ setInterval(async () => {
     const data = await sbFetch('GET', 'positionen?select=*');
     if (!data) return;
     let changed = false;
+    let newest = null;
     data.forEach(row => {
+      if (row.updated_at && (!newest || row.updated_at > newest)) newest = row.updated_at;
       const cur = ST[row.pos];
       if (!cur || cur.g!==row.g || cur.m!==row.m || cur.a!==row.a ||
           cur.sa!==row.sa || cur.ea!==row.ea || cur.ib!==row.ib || cur.ew!==row.ew || cur.note!==row.note) {
+        let pdfs = cur ? cur.pdfs : [];
+        try { if(row.pdfs) pdfs = JSON.parse(row.pdfs); } catch(e) {}
         ST[row.pos] = { g:row.g||false, m:row.m||false, a:row.a||false,
-          sa:row.sa||false, ea:row.ea||false, ib:row.ib||false, ew:row.ew||false, note:row.note||'', fotos:cur?cur.fotos:[] };
+          sa:row.sa||false, ea:row.ea||false, ib:row.ib||false, ew:row.ew||false,
+          note:row.note||'', fotos:cur?cur.fotos:[], pdfs:pdfs };
         changed = true;
-        // Update UI for this position
         const id = row.pos.replace(/\./g,'_');
         const fields = ['g','m','a','sa','ea','ib','ew'];
         fields.forEach(f => {
@@ -813,19 +918,19 @@ setInterval(async () => {
         updProg(row.pos);
       }
     });
+    updLastEdit(newest);
     if(changed) { upStats(); restoreUI(); }
   } catch(e) {}
 }, 30000);
 
 
 
-// ── PROTOKOLL UPLOAD ──
+// ── PROTOKOLL UPLOAD + PDF EDITOR ──
 let PPOS=null, PTYPE=null;
 const PROTO_TYPES=['IBN Protokoll','Einweisungsprotokoll','DGUV Protokoll'];
 
 function trpdf(pos,btn){
   PPOS=pos;
-  // Show type selection menu
   let menu=document.getElementById('ptypeMenu');
   if(!menu){
     menu=document.createElement('div');
@@ -835,7 +940,6 @@ function trpdf(pos,btn){
     document.body.appendChild(menu);
     document.addEventListener('click',e=>{if(!e.target.closest('#ptypeMenu')&&!e.target.closest('.fbtn'))menu.classList.remove('open');});
   }
-  // Position menu near button
   const r=btn.getBoundingClientRect();
   menu.style.top=(r.bottom+window.scrollY+4)+'px';
   menu.style.left=r.left+'px';
@@ -850,38 +954,230 @@ function selectPtype(type){
 }
 
 document.getElementById('pi').addEventListener('change',async function(e){
-    const file=e.target.files[0];
-    if(!file||!PPOS||!PTYPE)return;
-    showLoader(PTYPE+' wird hochgeladen...');
-    try {
-      const ext=file.name.split('.').pop();
-      const fname=PPOS.replace(/\./g,'_')+'_'+PTYPE.replace(/ /g,'_')+'_'+Date.now()+'.'+ext;
-      const res=await fetch(SB_URL+'/storage/v1/object/fotos/'+fname,{
-        method:'POST',
-        headers:{'apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY,'Content-Type':file.type||'application/pdf','x-upsert':'true'},
-        body:file
-      });
-      if(!res.ok) throw new Error(await res.text());
-      const url=SB_URL+'/storage/v1/object/public/fotos/'+fname;
-      // Save to ST
-      if(!gs(PPOS).pdfs) gs(PPOS).pdfs=[];
-      gs(PPOS).pdfs.push({type:PTYPE,url,name:file.name});
-      updPG(PPOS);
-      hideLoader();
-      alert(PTYPE+' erfolgreich hochgeladen!');
-    } catch(err){
-      hideLoader();
-      alert('Upload fehlgeschlagen: '+err.message);
-    }
-  });
+  const file=e.target.files[0];
+  if(!file||!PPOS||!PTYPE)return;
+  showLoader(PTYPE+' wird hochgeladen...');
+  try {
+    const ext=file.name.split('.').pop();
+    const fname=PPOS.replace(/\./g,'_')+'_'+PTYPE.replace(/ /g,'_')+'_'+Date.now()+'.'+ext;
+    const res=await fetch(SB_URL+'/storage/v1/object/fotos/'+fname,{
+      method:'POST',
+      headers:{'apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY,'Content-Type':file.type||'application/pdf','x-upsert':'true'},
+      body:file
+    });
+    if(!res.ok) throw new Error(await res.text());
+    const url=SB_URL+'/storage/v1/object/public/fotos/'+fname;
+    if(!gs(PPOS).pdfs) gs(PPOS).pdfs=[];
+    gs(PPOS).pdfs.push({type:PTYPE,url,name:file.name,fname:fname});
+    saveFotos(PPOS);
+    updPG(PPOS);
+    hideLoader();
+  } catch(err){
+    hideLoader();
+    alert('Upload fehlgeschlagen: '+err.message);
+  }
+});
 
 function updPG(pos){
   const id=sp(pos);
   const s=gs(pos);
   const g=document.getElementById('PG'+id);
-  if(!g||!s.pdfs) return;
-  g.innerHTML=s.pdfs.map((p,i)=>`<div class="pdoc">&#128196; <a href="${p.url}" target="_blank">${p.type}: ${p.name}</a></div>`).join('');
+  if(!g) return;
+  if(!s.pdfs||!s.pdfs.length){g.innerHTML='';return;}
+  g.innerHTML=s.pdfs.map((p,i)=>{
+    const isPdf=(p.fname||p.name||'').toLowerCase().endsWith('.pdf');
+    const editBtn=isPdf?`<button class="pdoc-btn pdoc-edit" onclick="pdfOpen('${pos}',${i})" title="Ausfüllen">&#9999;&#65039;</button>`:'';
+    return `<div class="pdoc">&#128196; <span class="pdoc-name" onclick="dlProto('${pos}',${i})">${p.type}: ${p.name}</span>${editBtn}<button class="pdoc-btn pdoc-del" onclick="delProto('${pos}',${i})" title="Löschen">&#10005;</button></div>`;
+  }).join('');
 }
+
+async function dlProto(pos,i){
+  const p=gs(pos).pdfs[i];
+  if(!p)return;
+  showLoader('Wird geladen...');
+  try{
+    const res=await fetch(p.url,{headers:{'apikey':SB_KEY}});
+    const blob=await res.blob();
+    const a=document.createElement('a');
+    a.href=URL.createObjectURL(blob);
+    a.download=p.name;
+    document.body.appendChild(a);a.click();a.remove();
+    hideLoader();
+  }catch(e){hideLoader();alert('Download fehlgeschlagen.');}
+}
+
+function delProto(pos,i){
+  const p=gs(pos).pdfs[i];
+  if(!p)return;
+  if(!confirm(p.type+' wirklich löschen?'))return;
+  gs(pos).pdfs.splice(i,1);
+  saveFotos(pos);
+  updPG(pos);
+  if(p.fname){
+    fetch(SB_URL+'/storage/v1/object/fotos/'+p.fname,{
+      method:'DELETE',headers:{'apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY}
+    }).catch(e=>console.warn('Löschen fehlgeschlagen:',e));
+  }
+}
+
+// ── PDF EDITOR (Pencil) ──
+let EDPOS=null, EDIDX=null, EDTOOL='pen', EDCOLOR='#1a3a8a', EDPAGES=[], EDDIRTY=false;
+const PEN_COLORS=['#1a3a8a','#000000','#c0392b','#1e7e34'];
+
+function pdfSetTool(t){
+  EDTOOL=t;
+  document.getElementById('toolPen').classList.toggle('on',t==='pen');
+  document.getElementById('toolErase').classList.toggle('on',t==='erase');
+}
+function buildPenPick(){
+  const w=document.getElementById('penPick');
+  w.innerHTML=PEN_COLORS.map(c=>`<div class="pen-c${c===EDCOLOR?' on':''}" style="background:${c}" onclick="pdfSetColor('${c}')"></div>`).join('');
+}
+function pdfSetColor(c){EDCOLOR=c;pdfSetTool('pen');buildPenPick();}
+
+async function pdfOpen(pos,i){
+  const p=gs(pos).pdfs[i];
+  if(!p)return;
+  EDPOS=pos;EDIDX=i;EDPAGES=[];EDDIRTY=false;
+  document.getElementById('pdfedTitle').textContent=p.type+': '+p.name;
+  buildPenPick();
+  pdfSetTool('pen');
+  document.getElementById('pdfed').classList.add('on');
+  const pagesEl=document.getElementById('pdfedPages');
+  pagesEl.innerHTML='<div style="color:#c8a882;padding:40px;font-size:15px;font-weight:700">PDF wird geladen...</div>';
+  try{
+    pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+    const res=await fetch(p.url,{headers:{'apikey':SB_KEY}});
+    const buf=await res.arrayBuffer();
+    const pdf=await pdfjsLib.getDocument({data:buf}).promise;
+    pagesEl.innerHTML='';
+    const scale=2;
+    for(let pn=1;pn<=pdf.numPages;pn++){
+      const page=await pdf.getPage(pn);
+      const vp=page.getViewport({scale});
+      const wrap=document.createElement('div');
+      wrap.className='pdfed-pg';
+      const cv=document.createElement('canvas');
+      cv.width=vp.width;cv.height=vp.height;
+      const ink=document.createElement('canvas');
+      ink.width=vp.width;ink.height=vp.height;
+      ink.className='ink';
+      const maxW=Math.min(window.innerWidth-28, 900);
+      const dispScale=maxW/vp.width;
+      cv.style.width=ink.style.width=(vp.width*dispScale)+'px';
+      cv.style.height=ink.style.height=(vp.height*dispScale)+'px';
+      wrap.appendChild(cv);wrap.appendChild(ink);
+      pagesEl.appendChild(wrap);
+      await page.render({canvasContext:cv.getContext('2d'),viewport:vp}).promise;
+      EDPAGES.push({base:cv,ink:ink});
+      attachInk(ink);
+    }
+  }catch(e){
+    pagesEl.innerHTML='<div style="color:#c0392b;padding:40px;font-size:15px">PDF konnte nicht geladen werden: '+e.message+'</div>';
+  }
+}
+
+function attachInk(ink){
+  const ctx=ink.getContext('2d');
+  let drawing=false,lastX=0,lastY=0;
+  function getXY(e){
+    const r=ink.getBoundingClientRect();
+    return [(e.clientX-r.left)*(ink.width/r.width), (e.clientY-r.top)*(ink.height/r.height)];
+  }
+  function start(e){e.preventDefault();drawing=true;[lastX,lastY]=getXY(e);}
+  function move(e){
+    if(!drawing)return;
+    e.preventDefault();
+    const [x,y]=getXY(e);
+    if(EDTOOL==='erase'){
+      ctx.save();ctx.globalCompositeOperation='destination-out';
+      ctx.beginPath();ctx.arc(x,y,18,0,2*Math.PI);ctx.fill();ctx.restore();
+    } else {
+      ctx.strokeStyle=EDCOLOR;ctx.lineWidth=3;ctx.lineCap='round';ctx.lineJoin='round';
+      ctx.beginPath();ctx.moveTo(lastX,lastY);ctx.lineTo(x,y);ctx.stroke();
+    }
+    [lastX,lastY]=[x,y];EDDIRTY=true;
+  }
+  function end(e){drawing=false;}
+  ink.addEventListener('pointerdown',start);
+  ink.addEventListener('pointermove',move);
+  ink.addEventListener('pointerup',end);
+  ink.addEventListener('pointercancel',end);
+  ink.addEventListener('pointerleave',end);
+}
+
+async function pdfSaveData(){
+  const p=gs(EDPOS).pdfs[EDIDX];
+  if(!p)return false;
+  const {jsPDF}=window.jspdf;
+  let doc=null;
+  EDPAGES.forEach((pg,idx)=>{
+    const merge=document.createElement('canvas');
+    merge.width=pg.base.width;merge.height=pg.base.height;
+    const mc=merge.getContext('2d');
+    mc.drawImage(pg.base,0,0);
+    mc.drawImage(pg.ink,0,0);
+    const imgData=merge.toDataURL('image/jpeg',0.85);
+    const wmm=210, hmm=merge.height*210/merge.width;
+    if(idx===0){ doc=new jsPDF({orientation:'p',unit:'mm',format:[wmm,hmm]}); }
+    else { doc.addPage([wmm,hmm]); }
+    doc.addImage(imgData,'JPEG',0,0,wmm,hmm);
+  });
+  const blob=doc.output('blob');
+  const res=await fetch(SB_URL+'/storage/v1/object/fotos/'+p.fname,{
+    method:'POST',
+    headers:{'apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY,'Content-Type':'application/pdf','x-upsert':'true'},
+    body:blob
+  });
+  if(!res.ok) throw new Error(await res.text());
+  return true;
+}
+
+async function pdfClose(){
+  // Auto-save on close if anything was drawn
+  if(EDDIRTY && EDPOS!==null && EDIDX!==null){
+    showLoader('Protokoll wird gespeichert...');
+    try{
+      await pdfSaveData();
+      hideLoader();
+    }catch(e){
+      hideLoader();
+      if(!confirm('Speichern fehlgeschlagen: '+e.message+'\n\nTrotzdem schließen? (Änderungen gehen verloren)')) {
+        return;
+      }
+    }
+  }
+  document.getElementById('pdfed').classList.remove('on');
+  document.getElementById('pdfedPages').innerHTML='';
+  EDPAGES=[];EDPOS=null;EDIDX=null;EDDIRTY=false;
+}
+
+async function downloadProtoZip(){
+  const all=[];
+  DATA.forEach(sec=>sec.subsections.forEach(sub=>sub.items.forEach(item=>{
+    const s=gs(item.pos);
+    if(s.pdfs&&s.pdfs.length) s.pdfs.forEach(p=>all.push({...p,pos:item.pos}));
+  })));
+  if(all.length===0){alert('Keine Protokolle vorhanden.');return;}
+  if(!confirm(all.length+' Protokoll(e) werden als ZIP heruntergeladen. OK?'))return;
+  showLoader('Protokolle werden gepackt...');
+  try{
+    const zip=new JSZip();
+    for(const p of all){
+      const res=await fetch(p.url,{headers:{'apikey':SB_KEY}});
+      const blob=await res.blob();
+      const folder=p.pos.replace(/\./g,'_');
+      zip.file(folder+'/'+p.name, blob);
+    }
+    const content=await zip.generateAsync({type:'blob'});
+    const a=document.createElement('a');
+    a.href=URL.createObjectURL(content);
+    a.download='Protokolle_Berlin_Upbeat_'+new Date().toISOString().slice(0,10)+'.zip';
+    document.body.appendChild(a);a.click();a.remove();
+    hideLoader();
+  }catch(e){hideLoader();alert('ZIP fehlgeschlagen: '+e.message);}
+}
+
 
 // INIT
 buildTabs();
