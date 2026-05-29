@@ -112,6 +112,13 @@ select.fs option{background:var(--anthrazit);}
 }
 .pdfed-pages{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:14px;display:flex;flex-direction:column;align-items:center;gap:14px;}
 .pdfed-pg{position:relative;background:#fff;box-shadow:0 4px 16px rgba(0,0,0,.3);line-height:0;}
+.pdfed-textinput{position:absolute;z-index:100;background:rgba(255,250,200,0.97);
+  border:2px solid #c8a882;color:#000;font-family:-apple-system,BlinkMacSystemFont,Arial,sans-serif;
+  font-size:16px;padding:5px 8px;border-radius:6px;outline:none;
+  min-width:200px;min-height:30px;resize:none;line-height:1.3;
+  box-shadow:0 4px 16px rgba(0,0,0,0.35);overflow:hidden;
+  -webkit-user-select:text;user-select:text;}
+.pdfed-textinput::placeholder{color:#8a8580;font-style:italic;}
 .pdfed-pg canvas{display:block;touch-action:none;}
 .pdfed-pg .ink{position:absolute;top:0;left:0;touch-action:none;}
 .pen-pick{display:flex;gap:6px;align-items:center;}
@@ -160,10 +167,14 @@ select.fs option{background:var(--anthrazit);}
   -webkit-tap-highlight-color:transparent;touch-action:manipulation;}
 .fbtn:active{background:var(--braun);}
 .fcnt{background:var(--accent);color:var(--anthrazit);font-size:10px;padding:0 5px;border-radius:10px;font-weight:700;}
-.fgrid{display:flex;gap:7px;flex-wrap:wrap;margin-top:7px;}
-.fth{position:relative;width:72px;height:72px;border-radius:6px;overflow:hidden;
-  border:2px solid var(--border);cursor:pointer;flex-shrink:0;}
+.fgrid{display:flex;gap:9px;flex-wrap:wrap;margin-top:7px;}
+.fth-wrap{display:flex;flex-direction:column;align-items:center;gap:3px;}
+.fth{position:relative;width:72px;height:72px;border-radius:8px;overflow:hidden;
+  border:2px solid var(--border);cursor:pointer;flex-shrink:0;background:var(--bg2);}
 .fth img{width:100%;height:100%;object-fit:cover;}
+.fth-date{font-size:9.5px;color:var(--accent2);font-family:Arial Narrow,Arial,sans-serif;
+  font-weight:600;letter-spacing:-0.005em;text-align:center;white-space:nowrap;
+  font-variant-numeric:tabular-nums;}
 .fdel{position:absolute;top:2px;right:2px;background:rgba(139,34,34,.85);color:#fff;
   border:none;border-radius:50%;width:20px;height:20px;font-size:11px;
   display:flex;align-items:center;justify-content:center;cursor:pointer;}
@@ -184,12 +195,40 @@ select.fs option{background:var(--anthrazit);}
   display:flex;align-items:center;justify-content:center;}
 
 /* FAB */
+/* FAB (alt) - bleibt für Kompatibilität */
 .fab{background:var(--braun);color:#fff;
   border:none;border-radius:28px;padding:11px 18px;font-size:13px;font-weight:700;
   box-shadow:0 4px 16px rgba(107,80,64,.4);cursor:pointer;
   display:flex;align-items:center;gap:7px;z-index:50;font-family:Arial Narrow,Arial,sans-serif;
   -webkit-tap-highlight-color:transparent;}
 .fab:active{transform:scale(.97);}
+
+/* FAB MINI - kompakt Apple-Style */
+.fab-bar{position:fixed;bottom:12px;left:0;right:0;display:flex;justify-content:center;
+  gap:6px;z-index:50;padding:0 10px;pointer-events:none;}
+.fab-mini{pointer-events:auto;display:inline-flex;align-items:center;justify-content:center;gap:6px;
+  height:44px;padding:0 14px;border:none;cursor:pointer;color:#fff;
+  font-family:inherit;font-size:12.5px;font-weight:600;letter-spacing:-0.005em;
+  border-radius:22px;
+  box-shadow:0 6px 20px rgba(45,41,38,0.22),0 1px 2px rgba(45,41,38,0.08);
+  -webkit-tap-highlight-color:transparent;
+  transition:transform 0.18s cubic-bezier(0.4,0,0.2,1);
+  white-space:nowrap;}
+.fab-mini:active{transform:scale(0.94);}
+.fab-mini svg{flex-shrink:0;}
+.fab-label{font-weight:600;}
+.fab-primary{background:var(--anthrazit);flex:0 1 auto;}
+.fab-secondary{background:#4a3a28;flex:0 1 auto;}
+.fab-icon{width:44px;padding:0;flex:0 0 44px;}
+.fab-zipfoto{background:#1a5f7a;}
+.fab-zippdf{background:var(--braun);}
+
+@media (max-width:380px){
+  .fab-mini{height:42px;font-size:12px;padding:0 12px;}
+  .fab-icon{width:42px;flex:0 0 42px;}
+  .fab-label{display:none;}
+  .fab-primary,.fab-secondary{width:44px;padding:0;flex:0 0 44px;}
+}
 .nores{text-align:center;padding:40px;color:var(--accent2);font-size:14px;}
 </style>
 </head>
@@ -225,18 +264,31 @@ select.fs option{background:var(--anthrazit);}
   <div class="pdfed-bar">
     <span class="ti" id="pdfedTitle">Protokoll</span>
     <button class="pdfed-tool on" id="toolPen" onclick="pdfSetTool('pen')">&#9999;&#65039; Stift</button>
+    <button class="pdfed-tool" id="toolText" onclick="pdfSetTool('text')"><b>T</b> Text</button>
     <button class="pdfed-tool" id="toolErase" onclick="pdfSetTool('erase')">&#129003; Radierer</button>
-    <button class="pdfed-tool save" onclick="pdfSaveManual()">&#128190; Speichern</button>
+    <button class="pdfed-tool save" id="toolSave" onclick="pdfSaveManual()">&#128190; Speichern</button>
+    <button class="pdfed-tool" id="toolViewEdit" onclick="pdfViewToEdit()" style="display:none;background:#3a7a3a">&#9999;&#65039; Bearbeiten</button>
+    <button class="pdfed-tool" id="toolViewDownload" onclick="pdfViewDownload()" style="display:none">&#11015;&#65039; Download</button>
     <button class="pdfed-tool close" onclick="pdfClose()">&#10005; Schlie&#223;en</button>
   </div>
   <div class="pdfed-pages" id="pdfedPages"></div>
 </div>
 
-<div style="position:fixed;bottom:18px;left:0;right:0;display:flex;justify-content:center;gap:10px;z-index:50;padding:0 12px">
-  <button class="fab" style="background:#2d2926;flex:1;justify-content:center;max-width:120px" onclick="expKunde(false)">&#128196; Kundenbericht ohne Fotos</button>
-  <button class="fab" style="background:#4a3a28;flex:1;justify-content:center;max-width:130px" onclick="expKunde(true)">&#128247; Kundenbericht mit Fotos</button>
-  <button class="fab" style="background:#1a5f7a;flex:0;padding:11px 12px" onclick="downloadZip()" title="Alle Fotos als ZIP">&#128190;</button>
-  <button class="fab" style="background:#6b5040;flex:0;padding:11px 12px" onclick="downloadProtoZip()" title="Alle Protokolle als ZIP">&#128196;</button>
+<div class="fab-bar">
+  <button class="fab-mini fab-primary" onclick="expKunde(false)" title="Kundenbericht ohne Fotos">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="17" height="17"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/><path d="M16 13H8M16 17H8M10 9H8"/></svg>
+    <span class="fab-label">Bericht</span>
+  </button>
+  <button class="fab-mini fab-secondary" onclick="expKunde(true)" title="Kundenbericht mit Fotos">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="17" height="17"><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/><circle cx="12" cy="13" r="3"/></svg>
+    <span class="fab-label">+ Fotos</span>
+  </button>
+  <button class="fab-mini fab-icon fab-zipfoto" onclick="downloadZip()" title="Alle Fotos als ZIP">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="17" height="17"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+  </button>
+  <button class="fab-mini fab-icon fab-zippdf" onclick="downloadProtoZip()" title="Alle Protokolle als ZIP">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="17" height="17"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></svg>
+  </button>
   
 </div>
 <input type="file" id="fi" accept="image/*" style="display:none">
@@ -309,9 +361,11 @@ function swTab(p){
   ACT=p;
   document.querySelectorAll('.tab').forEach(t=>t.classList.toggle('on',t.dataset.p===p));
   document.querySelectorAll('.panel').forEach(pn=>pn.classList.toggle('on',pn.dataset.p===p));
-  restoreUI();
+  // Kein restoreUI - UI ist beim Initial-Load schon gesetzt, Lazy Observer kümmert sich um neue Bilder
   const at=document.querySelector('.tab.on');
   if(at)at.scrollIntoView({behavior:'smooth',block:'nearest',inline:'center'});
+  // Window-Scroll an den Anfang des neuen Tabs
+  window.scrollTo({top: 0, behavior: 'auto'});
 }
 
 // BUILD PANELS
@@ -495,21 +549,51 @@ document.getElementById('fi').addEventListener('change',async function(e){
     alert(msg);
   }
 });
+function fotoTimestamp(src){
+  // Aus URL/Filename Date.now() extrahieren -> formatiertes Datum
+  const m = src.match(/_(\d{12,14})\./);
+  if(!m) return '';
+  const ts = parseInt(m[1]);
+  if(!ts || ts < 1577836800000) return ''; // Sanity: nach 2020
+  const d = new Date(ts);
+  return d.toLocaleDateString('de-DE',{day:'2-digit',month:'2-digit',year:'2-digit'})
+       + ' ' + d.toLocaleTimeString('de-DE',{hour:'2-digit',minute:'2-digit'});
+}
+
 function updFG(pos){
   const id=sp(pos);const s=gs(pos);
   const g=document.getElementById('FG'+id);
   const b=document.getElementById('FB'+id);
   if(g){
-    g.innerHTML=s.fotos.map((src,i)=>`<div class="fth" onclick="olb('${pos}',${i})"><img id="IMG_${id}_${i}" alt="Foto"><button class="fdel" onclick="event.stopPropagation();df('${pos}',${i})">&#10005;</button></div>`).join('');
-    // Load images as blobs to bypass ORB
+    g.innerHTML=s.fotos.map((src,i)=>{
+      const ts = fotoTimestamp(src);
+      return `<div class="fth-wrap"><div class="fth" onclick="olb('${pos}',${i})"><img class="fth-img" data-src="${src}" data-pos="${pos}" data-idx="${i}" id="IMG_${id}_${i}" alt="Foto"><button class="fdel" onclick="event.stopPropagation();df('${pos}',${i})">&#10005;</button></div>${ts?`<div class="fth-date">${ts}</div>`:''}</div>`;
+    }).join('');
+    // Lazy-Loading: nur Bilder im Sichtfeld werden geladen
     s.fotos.forEach((src,i)=>{
       const img=document.getElementById('IMG_'+id+'_'+i);
       if(!img) return;
-      loadImageAsBlob(src).then(blobUrl=>{ if(blobUrl) img.src=blobUrl; });
+      imgObserver.observe(img);
     });
   }
   if(b)b.innerHTML='&#128247; Foto'+(s.fotos.length?` <span class="fcnt">${s.fotos.length}</span>`:'');
 }
+
+// Lazy-Load Observer: Bilder erst laden wenn sie sichtbar werden
+const imgObserver = ('IntersectionObserver' in window) ? new IntersectionObserver((entries) => {
+  entries.forEach(entry => {
+    if(!entry.isIntersecting) return;
+    const img = entry.target;
+    imgObserver.unobserve(img);
+    const src = img.dataset.src;
+    if(!src) return;
+    loadImageAsBlob(src).then(blobUrl => { if(blobUrl) img.src = blobUrl; });
+  });
+}, {rootMargin: '200px'}) : {observe: img => { 
+  // Fallback ohne IntersectionObserver: direkt laden
+  const src = img.dataset.src;
+  if(src) loadImageAsBlob(src).then(blobUrl => { if(blobUrl) img.src = blobUrl; });
+}, unobserve: ()=>{}};
 
 // Cache for blob URLs
 const IMG_CACHE={};
@@ -866,19 +950,27 @@ function updLastEdit(iso){
 }
 
 
-function showToast(msg){
+function showToast(msg, opts){
+  opts = opts || {};
   let t = document.getElementById('toast');
   if(!t){
     t = document.createElement('div');
     t.id = 'toast';
-    t.style.cssText = 'position:fixed;bottom:80px;left:50%;transform:translateX(-50%);background:var(--green);color:#fff;padding:12px 22px;border-radius:24px;font-family:Arial Narrow,Arial,sans-serif;font-size:14px;font-weight:700;z-index:1500;box-shadow:0 6px 20px rgba(0,0,0,0.3);transition:opacity .3s;';
+    t.style.cssText = 'position:fixed;bottom:80px;left:50%;transform:translateX(-50%);color:#fff;padding:12px 22px;border-radius:24px;font-family:Arial Narrow,Arial,sans-serif;font-size:14px;font-weight:700;z-index:1500;box-shadow:0 6px 20px rgba(0,0,0,0.3);transition:opacity .3s;';
     document.body.appendChild(t);
   }
+  t.style.background = opts.bg || 'var(--green)';
   t.textContent = msg;
   t.style.opacity = '1';
   t.style.display = 'block';
   clearTimeout(showToast._t);
-  showToast._t = setTimeout(()=>{ t.style.opacity='0'; setTimeout(()=>{t.style.display='none'},300); }, 2500);
+  if(!opts.persist){
+    showToast._t = setTimeout(()=>{ t.style.opacity='0'; setTimeout(()=>{t.style.display='none'},300); }, opts.dur || 2500);
+  }
+}
+function hideToast(){
+  const t = document.getElementById('toast');
+  if(t){ t.style.opacity='0'; setTimeout(()=>{t.style.display='none'},300); }
 }
 
 function showLoader(msg) {
@@ -941,7 +1033,7 @@ setInterval(async () => {
       }
     });
     updLastEdit(newest);
-    if(changed) { upStats(); restoreUI(); }
+    if(changed) { upStats(); /* restoreUI nicht nötig - UI wird im Polling direkt aktualisiert */ }
   } catch(e) {}
 }, 30000);
 
@@ -1009,7 +1101,7 @@ function updPG(pos){
   g.innerHTML=s.pdfs.map((p,i)=>{
     const isPdf=(p.fname||p.name||'').toLowerCase().endsWith('.pdf');
     const editBtn=isPdf?`<button class="pdoc-btn pdoc-edit" onclick="pdfOpen('${pos}',${i})" title="Ausfüllen">&#9999;&#65039;</button>`:'';
-    return `<div class="pdoc">&#128196; <span class="pdoc-name" onclick="dlProto('${pos}',${i})">${p.type}: ${p.name}</span>${editBtn}<button class="pdoc-btn pdoc-del" onclick="delProto('${pos}',${i})" title="Löschen">&#10005;</button></div>`;
+    return `<div class="pdoc">&#128196; <span class="pdoc-name" onclick="pdfView('${pos}',${i})">${p.type}: ${p.name}</span>${editBtn}<button class="pdoc-btn pdoc-del" onclick="delProto('${pos}',${i})" title="Löschen">&#10005;</button></div>`;
   }).join('');
 }
 
@@ -1049,15 +1141,61 @@ const EDCOLOR='#000000';
 function pdfSetTool(t){
   EDTOOL=t;
   document.getElementById('toolPen').classList.toggle('on',t==='pen');
+  const te=document.getElementById('toolText');
+  if(te) te.classList.toggle('on',t==='text');
   document.getElementById('toolErase').classList.toggle('on',t==='erase');
+  // Bei Tool-Wechsel: aktiven Text-Input finalisieren
+  if(window._activeTextInput){
+    try { window._activeTextInput.blur(); } catch(e){}
+  }
 }
 
-async function pdfOpen(pos,i){
+// Lese-Modus-Flag - im Viewer wird nicht gezeichnet und nicht gespeichert
+let EDREADONLY = false;
+
+// Toolbar passt sich an Modus an
+function pdfRenderToolbar(){
+  const showEdit = EDREADONLY;
+  const showDraw = !EDREADONLY;
+  document.getElementById('toolPen').style.display     = showDraw ? '' : 'none';
+  const tt=document.getElementById('toolText');
+  if(tt) tt.style.display = showDraw ? '' : 'none';
+  document.getElementById('toolErase').style.display   = showDraw ? '' : 'none';
+  document.getElementById('toolSave').style.display    = showDraw ? '' : 'none';
+  document.getElementById('toolViewEdit').style.display     = showEdit ? '' : 'none';
+  document.getElementById('toolViewDownload').style.display = showEdit ? '' : 'none';
+}
+
+// Klick auf Dateinamen → Viewer öffnen (read-only)
+async function pdfView(pos, i){
+  return pdfOpen(pos, i, true);
+}
+
+// Wechsel vom Viewer in den Editor
+function pdfViewToEdit(){
+  if(EDPOS===null || EDIDX===null) return;
+  EDREADONLY = false;
+  pdfRenderToolbar();
+  pdfSetTool('pen');
+  // Listener für jede Ink-Layer anhängen
+  EDPAGES.forEach(pg => attachInk(pg.ink));
+}
+
+// Download aus Viewer heraus
+function pdfViewDownload(){
+  if(EDPOS===null || EDIDX===null) return;
+  dlProto(EDPOS, EDIDX);
+}
+
+async function pdfOpen(pos, i, readonly){
   const p=gs(pos).pdfs[i];
   if(!p)return;
   EDPOS=pos;EDIDX=i;EDPAGES=[];EDDIRTY=false;
-  document.getElementById('pdfedTitle').textContent=p.type+': '+p.name;
-  pdfSetTool('pen');
+  EDREADONLY = !!readonly;
+  const titlePrefix = EDREADONLY ? '👁 ' : '';
+  document.getElementById('pdfedTitle').textContent=titlePrefix+p.type+': '+p.name;
+  pdfRenderToolbar();
+  if(!EDREADONLY) pdfSetTool('pen');
   document.getElementById('pdfed').classList.add('on');
   const pagesEl=document.getElementById('pdfedPages');
   pagesEl.innerHTML='<div style="color:#c8a882;padding:40px;font-size:15px;font-weight:700">PDF wird geladen...</div>';
@@ -1078,6 +1216,7 @@ async function pdfOpen(pos,i){
       const ink=document.createElement('canvas');
       ink.width=vp.width;ink.height=vp.height;
       ink.className='ink';
+      if(EDREADONLY) ink.style.pointerEvents='none'; // Im Viewer keine Touch-Capture
       const maxW=Math.min(window.innerWidth-28, 900);
       const dispScale=maxW/vp.width;
       cv.style.width=ink.style.width=(vp.width*dispScale)+'px';
@@ -1086,7 +1225,7 @@ async function pdfOpen(pos,i){
       pagesEl.appendChild(wrap);
       await page.render({canvasContext:cv.getContext('2d'),viewport:vp}).promise;
       EDPAGES.push({base:cv,ink:ink});
-      attachInk(ink);
+      if(!EDREADONLY) attachInk(ink); // Im Viewer: keine Zeichen-Listener
     }
   }catch(e){
     pagesEl.innerHTML='<div style="color:#c0392b;padding:40px;font-size:15px">PDF konnte nicht geladen werden: '+e.message+'</div>';
@@ -1099,6 +1238,75 @@ function attachInk(ink){
   function getXY(e){
     const r=ink.getBoundingClientRect();
     return [(e.clientX-r.left)*(ink.width/r.width), (e.clientY-r.top)*(ink.height/r.height)];
+  }
+  // TEXT-TOOL: erstellt Textarea-Overlay, beim Bestätigen wird Text aufs Canvas gezeichnet
+  function startText(e){
+    e.preventDefault();
+    if(window._activeTextInput){
+      try { window._activeTextInput.blur(); } catch(err){}
+    }
+    const r=ink.getBoundingClientRect();
+    const wrap = ink.parentElement;
+    const wrapRect = wrap.getBoundingClientRect();
+    const [cx, cy] = getXY(e); // Canvas-Koordinaten
+    const scale = ink.width / r.width; // Display→Canvas Faktor
+    
+    const ta = document.createElement('textarea');
+    ta.className = 'pdfed-textinput';
+    ta.placeholder = 'Tippen ...';
+    ta.rows = 1;
+    ta.style.left = (e.clientX - wrapRect.left) + 'px';
+    ta.style.top  = (e.clientY - wrapRect.top - 4) + 'px';
+    ta._cx = cx; ta._cy = cy; ta._scale = scale;
+    wrap.appendChild(ta);
+    window._activeTextInput = ta;
+    
+    // Mobile Tastatur sicher öffnen
+    setTimeout(() => { ta.focus(); ta.click(); }, 50);
+    
+    ta.addEventListener('input', () => {
+      ta.style.height = 'auto';
+      ta.style.height = ta.scrollHeight + 'px';
+      // Breite mit Inhalt wachsen
+      const len = Math.max(...ta.value.split('\n').map(l => l.length));
+      ta.style.width = Math.max(200, Math.min(500, len * 11 + 30)) + 'px';
+    });
+    
+    let finalized = false;
+    function finalize(){
+      if(finalized) return; finalized = true;
+      const text = ta.value;
+      const x = ta._cx, y = ta._cy, sc = ta._scale;
+      
+      if(text.trim()){
+        // Text aufs Canvas zeichnen (Canvas-Auflösung berücksichtigen)
+        const fontSize = 18 * sc;
+        ctx.save();
+        ctx.fillStyle = '#000';
+        ctx.font = fontSize + 'px -apple-system, BlinkMacSystemFont, Arial, sans-serif';
+        ctx.textBaseline = 'top';
+        const lines = text.split('\n');
+        const lineHeight = fontSize * 1.3;
+        lines.forEach((line, idx) => {
+          if(line) ctx.fillText(line, x, y + idx * lineHeight);
+        });
+        ctx.restore();
+        EDDIRTY = true;
+      }
+      
+      ta.remove();
+      if(window._activeTextInput === ta) window._activeTextInput = null;
+    }
+    
+    ta.addEventListener('blur', finalize);
+    ta.addEventListener('keydown', (ev) => {
+      if(ev.key === 'Enter' && !ev.shiftKey && !ev.ctrlKey){
+        ev.preventDefault(); finalize();
+      } else if(ev.key === 'Escape'){
+        ev.preventDefault();
+        ta.value = ''; finalize();
+      }
+    });
   }
   function eraseAt(x,y){
     // Fill circle at point - works for single tap
@@ -1125,6 +1333,10 @@ function attachInk(ink){
     ctx.restore();
   }
   function start(e){
+    if(EDTOOL==='text'){
+      startText(e);
+      return;
+    }
     e.preventDefault();
     drawing=true;
     [lastX,lastY]=getXY(e);
@@ -1185,7 +1397,7 @@ async function pdfSaveData(){
     const mc=merge.getContext('2d');
     mc.drawImage(pg.base,0,0);
     mc.drawImage(pg.ink,0,0);
-    const imgData=merge.toDataURL('image/jpeg',0.85);
+    const imgData=merge.toDataURL('image/jpeg',0.7);
     const wmm=210, hmm=merge.height*210/merge.width;
     if(idx===0){ doc=new jsPDF({orientation:'p',unit:'mm',format:[wmm,hmm]}); }
     else { doc.addPage([wmm,hmm]); }
@@ -1232,22 +1444,109 @@ async function pdfClose(){
     EDPAGES=[];EDDIRTY=false;
     return;
   }
-  // IMMER speichern beim Schließen, unabhängig von EDDIRTY
-  // (Touch-Events feuern nicht immer zuverlässig pointermove)
-  showLoader('Protokoll wird gespeichert...');
-  try{
-    await pdfSaveData();
-    hideLoader();
-    // Erst NACH erfolgreichem Speichern schließen
+  // Im Viewer-Modus: einfach schließen, nichts speichern
+  if(EDREADONLY){
     document.getElementById('pdfed').classList.remove('on');
     document.getElementById('pdfedPages').innerHTML='';
-    EDPAGES=[];EDPOS=null;EDIDX=null;EDDIRTY=false;
+    EDPAGES=[];EDPOS=null;EDIDX=null;EDDIRTY=false;EDREADONLY=false;
+    return;
+  }
+  // Sofort schließen + Speichern im Hintergrund
+  // Referenzen lokal sichern (für Hintergrund-Save und Wiederöffnen bei Fehler)
+  const savingPos = EDPOS;
+  const savingIdx = EDIDX;
+  const savingPages = EDPAGES;
+  const savingTitle = document.getElementById('pdfedTitle').textContent;
+
+  // UI sofort schließen
+  document.getElementById('pdfed').classList.remove('on');
+  document.getElementById('pdfedPages').innerHTML='';
+  EDPAGES=[];EDPOS=null;EDIDX=null;EDDIRTY=false;
+
+  showToast('Wird gespeichert ...', {persist:true, bg:'var(--braun)'});
+
+  try{
+    await pdfSaveDataBg(savingPos, savingIdx, savingPages);
     showToast('✓ Protokoll gespeichert');
   }catch(e){
-    hideLoader();
-    alert('Speichern fehlgeschlagen!\n\n'+e.message+'\n\nDer Editor bleibt geöffnet damit nichts verloren geht.\nBitte Internet prüfen und nochmal auf Schließen tippen.');
-    // Editor bleibt offen, Zeichnung erhalten
+    hideToast();
+    alert('Speichern fehlgeschlagen!\n\n'+e.message+'\n\nDer Editor wird wieder geöffnet damit nichts verloren geht.');
+    // Editor mit ursprünglichem Zustand wieder öffnen
+    EDPOS = savingPos; EDIDX = savingIdx; EDPAGES = savingPages;
+    document.getElementById('pdfedTitle').textContent = savingTitle;
+    const pagesEl = document.getElementById('pdfedPages');
+    pagesEl.innerHTML='';
+    savingPages.forEach(pg=>{
+      const wrap = document.createElement('div');
+      wrap.className = 'pdfed-pg';
+      const maxW = Math.min(window.innerWidth-28, 900);
+      const dispScale = maxW/pg.base.width;
+      pg.base.style.width = pg.ink.style.width = (pg.base.width*dispScale)+'px';
+      pg.base.style.height = pg.ink.style.height = (pg.base.height*dispScale)+'px';
+      wrap.appendChild(pg.base); wrap.appendChild(pg.ink);
+      pagesEl.appendChild(wrap);
+      attachInk(pg.ink);
+    });
+    document.getElementById('pdfed').classList.add('on');
   }
+}
+
+// Hintergrund-Speichern mit lokalen Referenzen (race-frei)
+async function pdfSaveDataBg(pos, idx, pages){
+  if(pos===null||idx===null) return false;
+  const p=gs(pos).pdfs[idx];
+  if(!p) throw new Error('PDF-Eintrag nicht gefunden');
+  if(!pages.length) throw new Error('PDF wurde nicht vollständig geladen');
+  if(!window.jspdf) throw new Error('PDF-Bibliothek nicht geladen (Seite neu laden)');
+
+  let oldFname = p.fname;
+  if(!oldFname && p.url){
+    const m = p.url.match(/\/fotos\/([^?]+)/);
+    if(m) oldFname = decodeURIComponent(m[1]);
+  }
+
+  const {jsPDF}=window.jspdf;
+  let doc=null;
+  pages.forEach((pg,i)=>{
+    const merge=document.createElement('canvas');
+    merge.width=pg.base.width;merge.height=pg.base.height;
+    const mc=merge.getContext('2d');
+    mc.drawImage(pg.base,0,0);
+    mc.drawImage(pg.ink,0,0);
+    const imgData=merge.toDataURL('image/jpeg',0.7);
+    const wmm=210, hmm=merge.height*210/merge.width;
+    if(i===0){ doc=new jsPDF({orientation:'p',unit:'mm',format:[wmm,hmm]}); }
+    else { doc.addPage([wmm,hmm]); }
+    doc.addImage(imgData,'JPEG',0,0,wmm,hmm);
+  });
+  if(!doc) throw new Error('PDF konnte nicht erstellt werden');
+  const blob=doc.output('blob');
+
+  const typeSlug = (p.type||'Protokoll').replace(/ /g,'_');
+  const newFname = pos.replace(/\./g,'_')+'_'+typeSlug+'_'+Date.now()+'.pdf';
+
+  const res=await fetch(SB_URL+'/storage/v1/object/fotos/'+newFname,{
+    method:'POST',
+    headers:{'apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY,'Content-Type':'application/pdf'},
+    body:blob
+  });
+  if(!res.ok){
+    const errText = await res.text();
+    throw new Error('Server '+res.status+': '+errText.substring(0,200));
+  }
+
+  p.fname = newFname;
+  p.url = SB_URL+'/storage/v1/object/public/fotos/'+newFname;
+  saveFotos(pos);
+  updPG(pos);
+
+  if(oldFname && oldFname !== newFname){
+    fetch(SB_URL+'/storage/v1/object/fotos/'+oldFname,{
+      method:'DELETE',
+      headers:{'apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY}
+    }).catch(()=>{});
+  }
+  return true;
 }
 
 // Manueller Speichern-Button als Sicherheitsnetz
