@@ -147,17 +147,20 @@ select.fs option{background:var(--anthrazit);}
 
 /* CHECKS */
 .crow{display:flex;gap:6px;flex-wrap:wrap;}
-.ck{display:flex;align-items:center;gap:5px;padding:6px 11px;border-radius:20px;
+.ck{display:inline-flex;flex-direction:column;align-items:flex-start;gap:1px;padding:5px 11px;border-radius:14px;
   border:1.5px solid var(--border);cursor:pointer;font-size:12px;font-weight:700;
   background:var(--bg);color:var(--anthrazit);-webkit-tap-highlight-color:transparent;
-  touch-action:manipulation;transition:all .12s;user-select:none;}
+  touch-action:manipulation;transition:all .12s;user-select:none;line-height:1.15;}
 .ck:active{transform:scale(.95);}
+.ck-lbl{display:flex;align-items:center;gap:5px;}
 .ck.on{border-color:var(--green);background:var(--green);color:#fff;}
 .ck-ib.on{border-color:#5b4c8a;background:#5b4c8a;}
 .ck-sa.on{border-color:#1a5f7a;background:#1a5f7a;}
 .ck-ea.on{border-color:#b8860b;background:#b8860b;}
 .ck-ew.on{border-color:#1a6b6b;background:#1a6b6b;}
 .cki{font-size:13px;}
+.ck-ts{font-size:8.5px;font-weight:400;opacity:.8;letter-spacing:0.2px;white-space:nowrap;display:none;padding-left:18px;}
+.ck.on .ck-ts{display:block;}
 
 /* FOTO */
 .fsec{margin-top:8px;}
@@ -184,6 +187,42 @@ select.fs option{background:var(--anthrazit);}
   border-radius:var(--r);font-size:12px;color:var(--anthrazit);background:var(--bg);
   resize:none;min-height:32px;font-family:Arial Narrow,Arial,sans-serif;}
 .anm:focus{outline:none;border-color:var(--braun);}
+
+.rasec{margin-top:8px;border-top:1px dashed var(--border);padding-top:6px;}
+.rahd{display:flex;align-items:center;gap:6px;font-size:11px;font-weight:700;color:var(--braun);
+  text-transform:uppercase;letter-spacing:0.5px;margin-bottom:4px;}
+.rahd .rai{margin-left:auto;font-size:10px;color:var(--accent2);font-weight:400;text-transform:none;letter-spacing:0;}
+.rarow{margin:4px 0;padding:5px 6px;
+  background:var(--bg);border:1px solid var(--border);border-radius:var(--r);}
+.rarow.done{background:#eef2ee;border-color:#cdd5cd;}
+.ramain{display:flex;align-items:center;gap:6px;}
+.rachk{width:18px;height:18px;flex-shrink:0;accent-color:var(--green);cursor:pointer;}
+.ratxt{flex:1;border:none;background:transparent;font-size:12px;color:var(--anthrazit);
+  font-family:Arial Narrow,Arial,sans-serif;outline:none;padding:2px 0;min-width:0;}
+.rarow.done .ratxt{text-decoration:line-through;color:#7a7a7a;}
+.rafbtn{background:transparent;border:none;color:var(--braun);cursor:pointer;font-size:15px;
+  padding:0 4px;flex-shrink:0;-webkit-tap-highlight-color:transparent;line-height:1;}
+.rafbtn:hover{color:var(--anthrazit);}
+.radel{background:transparent;border:none;color:#8b2222;cursor:pointer;font-size:13px;
+  padding:0 4px;flex-shrink:0;-webkit-tap-highlight-color:transparent;}
+.radel:hover{color:#6b1818;}
+.rameta{display:flex;align-items:center;gap:8px;margin-top:3px;padding-left:24px;
+  font-size:9px;color:var(--accent2);font-family:Arial Narrow,Arial,sans-serif;}
+.rametacol{display:flex;align-items:center;gap:3px;flex-wrap:nowrap;}
+.rametalbl{font-weight:700;color:var(--braun);text-transform:uppercase;letter-spacing:0.3px;}
+.rakuerz{width:42px;border:1px solid var(--border);background:#fff;font-size:10px;color:var(--anthrazit);
+  font-family:Arial Narrow,Arial,sans-serif;font-weight:700;text-align:center;
+  text-transform:uppercase;outline:none;padding:1px 3px;border-radius:3px;}
+.rakuerz::placeholder{color:#c0c0c0;font-weight:400;}
+.rakuerz:focus{border-color:var(--braun);}
+.rats{font-size:9px;color:var(--accent2);white-space:nowrap;font-family:Arial Narrow,Arial,sans-serif;}
+.rafg{display:flex;gap:5px;flex-wrap:wrap;margin-top:5px;padding-left:24px;}
+.rafth{position:relative;width:54px;height:54px;border-radius:4px;overflow:hidden;
+  border:1.5px solid var(--border);cursor:pointer;flex-shrink:0;}
+.rafth img{width:100%;height:100%;object-fit:cover;}
+.rafdel{position:absolute;top:1px;right:1px;background:rgba(139,34,34,.85);color:#fff;
+  border:none;border-radius:50%;width:16px;height:16px;font-size:9px;
+  display:flex;align-items:center;justify-content:center;cursor:pointer;line-height:1;}
 
 /* LIGHTBOX */
 .lb{display:none;position:fixed;inset:0;background:rgba(0,0,0,.92);z-index:999;
@@ -289,6 +328,9 @@ select.fs option{background:var(--anthrazit);}
   <button class="fab-mini fab-icon fab-zippdf" onclick="downloadProtoZip()" title="Alle Protokolle als ZIP">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="17" height="17"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></svg>
   </button>
+  <button class="fab-mini fab-icon" style="background:#5b4c8a;color:#fff" onclick="expRest()" title="Restarbeitenliste als PDF">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="17" height="17"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 0 2-2h11"/></svg>
+  </button>
   
 </div>
 <input type="file" id="fi" accept="image/*" style="display:none">
@@ -325,6 +367,8 @@ function savePos(pos) {
         note: s.note,
         fotos: JSON.stringify(s.fotos),
         pdfs: JSON.stringify(s.pdfs||[]),
+        restarbeiten: JSON.stringify(s.restarbeiten||[]),
+        ts: JSON.stringify(s.ts||{}),
         updated_at: new Date().toISOString()
       })
     })
@@ -338,7 +382,7 @@ function savePos(pos) {
 }
 let ACT=DATA[0].pos, FPOS=null;
 
-function gs(p){if(!ST[p])ST[p]={g:false,m:false,a:false,sa:false,ea:false,ib:false,ew:false,fotos:[],pdfs:[],note:''};if(!ST[p].pdfs)ST[p].pdfs=[];return ST[p];}
+function gs(p){if(!ST[p])ST[p]={g:false,m:false,a:false,sa:false,ea:false,ib:false,ew:false,fotos:[],pdfs:[],restarbeiten:[],note:'',ts:{}};if(!ST[p].pdfs)ST[p].pdfs=[];if(!ST[p].restarbeiten)ST[p].restarbeiten=[];if(!ST[p].ts)ST[p].ts={};return ST[p];}
 function ist(p){const s=gs(p);if(s.g||s.m||s.a||s.ib||s.ew||s.fotos.length||s.note){const n=[s.g,s.m,s.a,s.sa,s.ea,s.ib,s.ew].filter(Boolean).length;return n===7?'done':'part';}return 'open';}
 function sp(p){return p.replace(/\./g,'_');}
 
@@ -393,12 +437,12 @@ function buildPanels(){
     <div class="img">${item.menge} ${item.einh}</div>
   </div>
   <div class="crow">
-    <div class="ck" id="Kg${id}" onclick="tc('${item.pos}','g')"><span class="cki">&#9675;</span>&nbsp;Geliefert</div>
-    <div class="ck" id="Km${id}" onclick="tc('${item.pos}','m')"><span class="cki">&#9675;</span>&nbsp;Montiert</div>
-    <div class="ck ck-sa" id="Ksa${id}" onclick="tc('${item.pos}','sa')"><span class="cki">&#9675;</span>&nbsp;Sanitär</div>
-    <div class="ck ck-ea" id="Kea${id}" onclick="tc('${item.pos}','ea')"><span class="cki">&#9675;</span>&nbsp;Elektro</div>
-    <div class="ck ck-ib" id="Kib${id}" onclick="tc('${item.pos}','ib')"><span class="cki">&#9675;</span>&nbsp;Inbetriebnahme</div>
-    <div class="ck ck-ew" id="Kew${id}" onclick="tc('${item.pos}','ew')"><span class="cki">&#9675;</span>&nbsp;Eingewiesen</div>
+    <div class="ck" id="Kg${id}" onclick="tc('${item.pos}','g')"><span class="ck-lbl"><span class="cki">&#9675;</span>&nbsp;Geliefert</span><span class="ck-ts" id="Tg${id}"></span></div>
+    <div class="ck" id="Km${id}" onclick="tc('${item.pos}','m')"><span class="ck-lbl"><span class="cki">&#9675;</span>&nbsp;Montiert</span><span class="ck-ts" id="Tm${id}"></span></div>
+    <div class="ck ck-sa" id="Ksa${id}" onclick="tc('${item.pos}','sa')"><span class="ck-lbl"><span class="cki">&#9675;</span>&nbsp;Sanitär</span><span class="ck-ts" id="Tsa${id}"></span></div>
+    <div class="ck ck-ea" id="Kea${id}" onclick="tc('${item.pos}','ea')"><span class="ck-lbl"><span class="cki">&#9675;</span>&nbsp;Elektro</span><span class="ck-ts" id="Tea${id}"></span></div>
+    <div class="ck ck-ib" id="Kib${id}" onclick="tc('${item.pos}','ib')"><span class="ck-lbl"><span class="cki">&#9675;</span>&nbsp;Inbetriebnahme</span><span class="ck-ts" id="Tib${id}"></span></div>
+    <div class="ck ck-ew" id="Kew${id}" onclick="tc('${item.pos}','ew')"><span class="ck-lbl"><span class="cki">&#9675;</span>&nbsp;Eingewiesen</span><span class="ck-ts" id="Tew${id}"></span></div>
   </div>
   <div class="fsec">
     <button class="fbtn" id="FB${id}" onclick="trf('${item.pos}')">&#128247; Foto</button>
@@ -407,6 +451,10 @@ function buildPanels(){
     <div class="pgrid" id="PG${id}"></div>
   </div>
   <textarea class="anm" rows="1" placeholder="Anmerkung &#8230;" oninput="autoR(this);gs('${item.pos}').note=this.value;rc('${item.pos}');clearTimeout(NOTE_TIMERS['${item.pos}']);NOTE_TIMERS['${item.pos}']=setTimeout(()=>savePos('${item.pos}'),1500)"></textarea>
+  <div class="rasec">
+    <div class="rahd">&#128203; Restarbeiten <span class="rai" id="RAI${id}"></span></div>
+    <div id="RA${id}"></div>
+  </div>
 </div>`;
       });
       div.innerHTML=`<div class="bhdr" onclick="tgB(this)">
@@ -436,12 +484,22 @@ function tgB(h){
 }
 
 // TOGGLE CHECK
+function tsFmt(iso){
+  if(!iso)return'';
+  const d=new Date(iso);
+  return d.toLocaleDateString('de-DE',{day:'2-digit',month:'2-digit',year:'2-digit'})
+    +' '+d.toLocaleTimeString('de-DE',{hour:'2-digit',minute:'2-digit'});
+}
 function tc(pos,f){
   const s=gs(pos);
   s[f]=!s[f];
+  if(s[f]) s.ts[f]=new Date().toISOString();
+  else delete s.ts[f];
   const id=sp(pos);
   const el=document.getElementById('K'+f+id);
   if(el){el.classList.toggle('on',s[f]);el.querySelector('.cki').innerHTML=s[f]?'&#10003;':'&#9675;';}
+  const tsEl=document.getElementById('T'+f+id);
+  if(tsEl) tsEl.textContent=s[f]?tsFmt(s.ts[f]):'';
   rc(pos);upStats();savePos(pos);
 }
 
@@ -691,6 +749,8 @@ function restoreUI() {
       if(el && s[f]) {
         el.classList.add('on');
         el.querySelector('.cki').innerHTML = '&#10003;';
+        const tsEl = document.getElementById('T'+f+id);
+        if(tsEl && s.ts && s.ts[f]) tsEl.textContent = tsFmt(s.ts[f]);
       }
     });
     // Restore card color
@@ -702,6 +762,8 @@ function restoreUI() {
     if(anm && s.note) { anm.value = s.note; autoR(anm); }
     // Restore fotos
     if(s.fotos && s.fotos.length) updFG(pos);
+    // Restore restarbeiten
+    updRA(pos);
     // Restore protokolle
     if(s.pdfs && s.pdfs.length) updPG(pos);
     // Restore progress
@@ -760,7 +822,8 @@ function expKunde(withFotos=false){
           bez:item.bez.trim(),
           fabrikat:item.fabrikat.trim(),
           typ:item.typ.trim(),
-          g:s.g,m:s.m,a:s.sa,sa:s.sa,ea:s.ea,ib:s.ib,ew:s.ew,
+          g:s.g,m:s.m,a:s.a,sa:s.sa,ea:s.ea,ib:s.ib,ew:s.ew,
+          ts:s.ts||{},
           fotos:s.fotos,note:s.note
         });
       });
@@ -782,19 +845,24 @@ function expKunde(withFotos=false){
       tableRows+=`<tr><td colspan="9" style="background:#eeecea;color:#6b5040;font-weight:700;font-size:12px;padding:5px 10px;border-left:3px solid #c8a882">${r.bereich}</td></tr>`;
       lastB=r.bereich;
     }
-    const chk=v=>v?'<span style="color:#3a7a3a;font-weight:700">&#10003;</span>':'<span style="color:#ccc">&#8211;</span>';
+    const tsShort=iso=>{if(!iso)return'';const d=new Date(iso);return d.toLocaleDateString('de-DE',{day:'2-digit',month:'2-digit',year:'2-digit'});};
+    const chk=(v,f)=>{
+      if(!v)return'<span style="color:#ccc">&#8211;</span>';
+      const dt=tsShort(r.ts&&r.ts[f]);
+      return '<span style="color:#3a7a3a;font-weight:700">&#10003;</span>'+(dt?'<br><span style="font-size:8.5px;color:#9a9a9a;font-weight:400">'+dt+'</span>':'');
+    };
     tableRows+=`<tr style="background:${i%2===0?'#fff':'#faf9f7'}">
       <td style="padding:5px 8px;font-size:11px;color:#9a9a9a;white-space:nowrap">${r.pos}</td>
       <td style="padding:5px 8px;font-size:12px;font-weight:700">${r.bez}</td>
       <td style="padding:5px 8px;font-size:11px;color:#6b5040">${r.fabrikat}</td>
       <td style="padding:5px 8px;font-size:11px;color:#9a9a9a">${r.typ}</td>
       <td style="padding:5px 8px;font-size:12px;font-weight:700;text-align:center;white-space:nowrap">${r.menge} ${r.einh}</td>
-      <td style="padding:5px 8px;text-align:center">${chk(r.g)}</td>
-      <td style="padding:5px 8px;text-align:center">${chk(r.m)}</td>
-      <td style="padding:5px 8px;text-align:center">${chk(r.sa)}</td>
-      <td style="padding:5px 8px;text-align:center">${chk(r.ea)}</td>
-      <td style="padding:5px 8px;text-align:center">${chk(r.ib)}</td>
-      <td style="padding:5px 8px;text-align:center">${chk(r.ew)}</td>
+      <td style="padding:5px 8px;text-align:center;vertical-align:top">${chk(r.g,'g')}</td>
+      <td style="padding:5px 8px;text-align:center;vertical-align:top">${chk(r.m,'m')}</td>
+      <td style="padding:5px 8px;text-align:center;vertical-align:top">${chk(r.sa,'sa')}</td>
+      <td style="padding:5px 8px;text-align:center;vertical-align:top">${chk(r.ea,'ea')}</td>
+      <td style="padding:5px 8px;text-align:center;vertical-align:top">${chk(r.ib,'ib')}</td>
+      <td style="padding:5px 8px;text-align:center;vertical-align:top">${chk(r.ew,'ew')}</td>
     </tr>`;
     if(r.note)tableRows+=`<tr style="background:${i%2===0?'#fff':'#faf9f7'}"><td colspan="9" style="padding:2px 8px 6px 28px;font-size:11px;color:#6b5040;font-style:italic">↳ ${r.note}</td></tr>`;
     if(withFotos && r.fotos && r.fotos.length){
@@ -905,6 +973,8 @@ function saveFotos(pos) {
       note: s.note,
       fotos: JSON.stringify(s.fotos),
       pdfs: JSON.stringify(s.pdfs||[]),
+      restarbeiten: JSON.stringify(s.restarbeiten||[]),
+      ts: JSON.stringify(s.ts||{}),
       updated_at: new Date().toISOString()
     })
   }).catch(e => console.warn('Speichern fehlgeschlagen:', e));
@@ -923,10 +993,14 @@ async function loadState() {
         let fotos = [], pdfs = [];
         try { fotos = row.fotos ? JSON.parse(row.fotos) : []; } catch(e) {}
         try { pdfs = row.pdfs ? JSON.parse(row.pdfs) : []; } catch(e) {}
+        let rest = [];
+        try { rest = row.restarbeiten ? JSON.parse(row.restarbeiten) : []; } catch(e) {}
+        let tsObj = {};
+        try { tsObj = row.ts ? JSON.parse(row.ts) : {}; } catch(e) {}
         ST[row.pos] = {
           g: row.g||false, m: row.m||false, a: row.a||false,
           sa: row.sa||false, ea: row.ea||false, ib: row.ib||false, ew: row.ew||false,
-          note: row.note||'', fotos: fotos, pdfs: pdfs
+          note: row.note||'', fotos: fotos, pdfs: pdfs, restarbeiten: rest, ts: tsObj
         };
         if (row.updated_at && (!newest || row.updated_at > newest)) newest = row.updated_at;
       });
@@ -1010,19 +1084,27 @@ setInterval(async () => {
     data.forEach(row => {
       if (row.updated_at && (!newest || row.updated_at > newest)) newest = row.updated_at;
       const cur = ST[row.pos];
+      let newRest = cur ? cur.restarbeiten : [];
+      try { if(row.restarbeiten) newRest = JSON.parse(row.restarbeiten); } catch(e) {}
+      const restChanged = JSON.stringify(cur?cur.restarbeiten:[])!==JSON.stringify(newRest);
+      let newTs = cur ? (cur.ts||{}) : {};
+      try { if(row.ts) newTs = JSON.parse(row.ts); } catch(e) {}
+      const tsChanged = JSON.stringify(cur?(cur.ts||{}):{})!==JSON.stringify(newTs);
       if (!cur || cur.g!==row.g || cur.m!==row.m || cur.a!==row.a ||
-          cur.sa!==row.sa || cur.ea!==row.ea || cur.ib!==row.ib || cur.ew!==row.ew || cur.note!==row.note) {
+          cur.sa!==row.sa || cur.ea!==row.ea || cur.ib!==row.ib || cur.ew!==row.ew || cur.note!==row.note || restChanged || tsChanged) {
         let pdfs = cur ? cur.pdfs : [];
         try { if(row.pdfs) pdfs = JSON.parse(row.pdfs); } catch(e) {}
         ST[row.pos] = { g:row.g||false, m:row.m||false, a:row.a||false,
           sa:row.sa||false, ea:row.ea||false, ib:row.ib||false, ew:row.ew||false,
-          note:row.note||'', fotos:cur?cur.fotos:[], pdfs:pdfs };
+          note:row.note||'', fotos:cur?cur.fotos:[], pdfs:pdfs, restarbeiten:newRest, ts:newTs };
         changed = true;
         const id = row.pos.replace(/\./g,'_');
         const fields = ['g','m','a','sa','ea','ib','ew'];
         fields.forEach(f => {
           const el = document.getElementById('K'+f+id);
           if(el) { el.classList.toggle('on', ST[row.pos][f]); el.querySelector('.cki').innerHTML = ST[row.pos][f]?'&#10003;':'&#9675;'; }
+          const tsEl = document.getElementById('T'+f+id);
+          if(tsEl) tsEl.textContent = (ST[row.pos][f] && ST[row.pos].ts && ST[row.pos].ts[f]) ? tsFmt(ST[row.pos].ts[f]) : '';
         });
         const card = document.getElementById('C'+id);
         const st = ist(row.pos);
@@ -1030,6 +1112,12 @@ setInterval(async () => {
         const anm = card ? card.querySelector('.anm') : null;
         if(anm && anm !== document.activeElement) anm.value = ST[row.pos].note;
         updProg(row.pos);
+        // Restarbeiten nur rendern wenn diese Karte nicht gerade fokussiert ist
+        if(restChanged){
+          const card2 = document.getElementById('C'+row.pos.replace(/\./g,'_'));
+          const tippt = card2 && card2.contains(document.activeElement);
+          if(!tippt) updRA(row.pos);
+        }
       }
     });
     updLastEdit(newest);
@@ -1591,6 +1679,314 @@ async function downloadProtoZip(){
   }catch(e){hideLoader();alert('ZIP fehlgeschlagen: '+e.message);}
 }
 
+
+const RA_TIMERS={};
+let RA_FOTO_TARGET=null;
+
+function raFmtTs(iso){
+  if(!iso)return'';
+  const d=new Date(iso);
+  return d.toLocaleDateString('de-DE',{day:'2-digit',month:'2-digit',year:'2-digit'})
+    +' '+d.toLocaleTimeString('de-DE',{hour:'2-digit',minute:'2-digit'});
+}
+function raEnsure(r){
+  if(typeof r.ersteller==='undefined') r.ersteller=r.kuerzel||'';
+  if(typeof r.erstelltAm==='undefined') r.erstelltAm=null;
+  if(typeof r.erledigtVon==='undefined') r.erledigtVon='';
+  if(typeof r.erledigtAm==='undefined') r.erledigtAm=r.doneAt||null;
+  if(!Array.isArray(r.fotos)) r.fotos=[];
+  return r;
+}
+function updRA(pos){
+  const id=sp(pos);
+  const s=gs(pos);
+  const g=document.getElementById('RA'+id);
+  if(!g)return;
+  if(!s.restarbeiten.length) s.restarbeiten.push({txt:'',done:false,ersteller:'',erstelltAm:null,erledigtVon:'',erledigtAm:null,fotos:[]});
+  s.restarbeiten.forEach(raEnsure);
+  g.innerHTML=s.restarbeiten.map((r,i)=>{
+    const tsErst=r.erstelltAm?raFmtTs(r.erstelltAm):'';
+    const tsErl=r.done&&r.erledigtAm?raFmtTs(r.erledigtAm):'';
+    const fotosHtml=r.fotos.length?`<div class="rafg" id="RAFG_${id}_${i}">${r.fotos.map((src,fi)=>`<div class="rafth" onclick="raOlb('${pos}',${i},${fi})"><img src="${src}" loading="lazy"><button class="rafdel" onclick="event.stopPropagation();raFotoDel('${pos}',${i},${fi})">&#10005;</button></div>`).join('')}</div>`:'';
+    return `<div class="rarow${r.done?' done':''}" data-i="${i}">
+      <div class="ramain">
+        <input type="checkbox" class="rachk" ${r.done?'checked':''} onchange="raToggle('${pos}',${i},this.checked)">
+        <input type="text" class="ratxt" value="${(r.txt||'').replace(/"/g,'&quot;')}" placeholder="Restarbeit ${i+1}…"
+          oninput="raSetTxt('${pos}',${i},this.value)" onkeydown="raKey(event,'${pos}',${i})">
+        <button class="rafbtn" onclick="raFoto('${pos}',${i})" title="Foto zur Restarbeit">&#128247;</button>
+        <button class="radel" onclick="raDel('${pos}',${i})" title="Zeile löschen">&#10005;</button>
+      </div>
+      <div class="rameta">
+        <div class="rametacol">
+          <span class="rametalbl">Erst.:</span>
+          <input type="text" class="rakuerz" value="${(r.ersteller||'').replace(/"/g,'&quot;')}" placeholder="Kürz." maxlength="5"
+            oninput="raSetErsteller('${pos}',${i},this.value)" onblur="raStampErstellt('${pos}',${i})">
+          <span class="rats">${tsErst}</span>
+        </div>
+        <div class="rametacol">
+          <span class="rametalbl">Erl.:</span>
+          <input type="text" class="rakuerz" value="${(r.erledigtVon||'').replace(/"/g,'&quot;')}" placeholder="Kürz." maxlength="5"
+            oninput="raSetErledigtVon('${pos}',${i},this.value)">
+          <span class="rats">${tsErl}</span>
+        </div>
+      </div>
+      ${fotosHtml}
+    </div>`;
+  }).join('');
+  const info=document.getElementById('RAI'+id);
+  if(info){
+    const off=s.restarbeiten.filter(r=>r.txt&&!r.done).length;
+    const all=s.restarbeiten.filter(r=>r.txt).length;
+    info.textContent=all?`${all-off}/${all} erledigt`:'';
+  }
+}
+function raSetTxt(pos,i,val){
+  const s=gs(pos);
+  if(!s.restarbeiten[i])return;
+  raEnsure(s.restarbeiten[i]);
+  s.restarbeiten[i].txt=val;
+  if(val.trim() && !s.restarbeiten[i].erstelltAm) s.restarbeiten[i].erstelltAm=new Date().toISOString();
+  raDebouncedSave(pos);
+}
+function raSetErsteller(pos,i,val){
+  const s=gs(pos);
+  if(!s.restarbeiten[i])return;
+  raEnsure(s.restarbeiten[i]);
+  s.restarbeiten[i].ersteller=val.toUpperCase();
+  raDebouncedSave(pos);
+}
+function raStampErstellt(pos,i){
+  const s=gs(pos);
+  if(!s.restarbeiten[i])return;
+  if(s.restarbeiten[i].ersteller && !s.restarbeiten[i].erstelltAm){
+    s.restarbeiten[i].erstelltAm=new Date().toISOString();
+    updRA(pos);
+    raDebouncedSave(pos);
+  }
+}
+function raSetErledigtVon(pos,i,val){
+  const s=gs(pos);
+  if(!s.restarbeiten[i])return;
+  raEnsure(s.restarbeiten[i]);
+  s.restarbeiten[i].erledigtVon=val.toUpperCase();
+  raDebouncedSave(pos);
+}
+function raToggle(pos,i,done){
+  const s=gs(pos);
+  if(!s.restarbeiten[i])return;
+  raEnsure(s.restarbeiten[i]);
+  s.restarbeiten[i].done=done;
+  s.restarbeiten[i].erledigtAm=done?new Date().toISOString():null;
+  if(!done) s.restarbeiten[i].erledigtVon='';
+  updRA(pos);
+  saveFotos(pos);
+}
+function raDel(pos,i){
+  const s=gs(pos);
+  if(s.restarbeiten[i] && (s.restarbeiten[i].txt||s.restarbeiten[i].fotos.length)){
+    if(!confirm('Restarbeit wirklich löschen?'))return;
+  }
+  s.restarbeiten.splice(i,1);
+  updRA(pos);
+  saveFotos(pos);
+}
+function raKey(ev,pos,i){
+  if(ev.key!=='Enter')return;
+  ev.preventDefault();
+  const s=gs(pos);
+  s.restarbeiten.splice(i+1,0,{txt:'',done:false,ersteller:'',erstelltAm:null,erledigtVon:'',erledigtAm:null,fotos:[]});
+  updRA(pos);
+  saveFotos(pos);
+  setTimeout(()=>{
+    const id=sp(pos);
+    const newRow=document.querySelector(`#RA${id} .rarow[data-i="${i+1}"] .ratxt`);
+    if(newRow)newRow.focus();
+  },10);
+}
+function raDebouncedSave(pos){
+  if(RA_TIMERS[pos])clearTimeout(RA_TIMERS[pos]);
+  RA_TIMERS[pos]=setTimeout(()=>{
+    saveFotos(pos);
+    const id=sp(pos);
+    const s=gs(pos);
+    const info=document.getElementById('RAI'+id);
+    if(info){
+      const off=s.restarbeiten.filter(r=>r.txt&&!r.done).length;
+      const all=s.restarbeiten.filter(r=>r.txt).length;
+      info.textContent=all?`${all-off}/${all} erledigt`:'';
+    }
+    delete RA_TIMERS[pos];
+  },1000);
+}
+function raFoto(pos,idx){
+  RA_FOTO_TARGET={pos,idx};
+  let menu=document.getElementById('raFsrcMenu');
+  if(!menu){
+    menu=document.createElement('div');
+    menu.id='raFsrcMenu';
+    menu.className='ptype-menu';
+    menu.innerHTML='<div class="ptype-item" onclick="raSelectFsrc(\'cam\')">&#128247; Kamera aufnehmen</div><div class="ptype-item" onclick="raSelectFsrc(\'gal\')">&#128444; Aus Galerie wählen</div>';
+    document.body.appendChild(menu);
+    document.addEventListener('click',e=>{if(!e.target.closest('#raFsrcMenu')&&!e.target.closest('.rafbtn'))menu.classList.remove('open');});
+  }
+  const id=sp(pos);
+  const btn=document.querySelector(`#RA${id} .rarow[data-i="${idx}"] .rafbtn`);
+  if(btn){
+    const r=btn.getBoundingClientRect();
+    menu.style.top=(r.bottom+window.scrollY+4)+'px';
+    menu.style.left=Math.max(8,r.left+window.scrollX-100)+'px';
+  }
+  menu.classList.add('open');
+}
+function raSelectFsrc(src){
+  document.getElementById('raFsrcMenu')?.classList.remove('open');
+  const inp=document.createElement('input');
+  inp.type='file';
+  inp.accept='image/*';
+  if(src==='cam')inp.setAttribute('capture','environment');
+  inp.style.display='none';
+  document.body.appendChild(inp);
+  inp.addEventListener('change',raHandleFotoUpload);
+  inp.click();
+}
+async function raHandleFotoUpload(e){
+  const file=e.target.files[0];
+  e.target.remove();
+  if(!file||!RA_FOTO_TARGET)return;
+  const {pos,idx}=RA_FOTO_TARGET;
+  showLoader('Foto wird komprimiert...');
+  try{
+    const uploadFile=await tryCompressImage(file);
+    const origKB=Math.round(file.size/1024);
+    const newKB=Math.round(uploadFile.size/1024);
+    showLoader('Foto wird hochgeladen... ('+newKB+' KB, vorher '+origKB+' KB)');
+    const fname='RA_'+pos.replace(/\./g,'_')+'_'+idx+'_'+Date.now()+'.jpg';
+    const controller=new AbortController();
+    const timeout=setTimeout(()=>controller.abort(),60000);
+    const res=await fetch(SB_URL+'/storage/v1/object/fotos/'+fname,{
+      method:'POST',
+      headers:{'apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY,'Content-Type':'image/jpeg','x-upsert':'true'},
+      body:uploadFile,
+      signal:controller.signal
+    });
+    clearTimeout(timeout);
+    if(!res.ok) throw new Error(await res.text());
+    const publicUrl=SB_URL+'/storage/v1/object/public/fotos/'+fname;
+    const s=gs(pos);
+    if(s.restarbeiten[idx]){
+      raEnsure(s.restarbeiten[idx]);
+      s.restarbeiten[idx].fotos.push(publicUrl);
+      updRA(pos);
+      saveFotos(pos);
+    }
+    hideLoader();
+  }catch(err){
+    hideLoader();
+    console.warn('RA-Foto-Upload fehlgeschlagen:',err.message);
+    alert('Foto-Upload fehlgeschlagen.');
+  }
+  RA_FOTO_TARGET=null;
+}
+function raFotoDel(pos,idx,fi){
+  const s=gs(pos);
+  if(!s.restarbeiten[idx])return;
+  const url=s.restarbeiten[idx].fotos[fi];
+  if(!confirm('Foto wirklich löschen?'))return;
+  s.restarbeiten[idx].fotos.splice(fi,1);
+  updRA(pos);
+  saveFotos(pos);
+  if(url && url.includes('/fotos/')){
+    const fname=url.split('/fotos/')[1].split('?')[0];
+    fetch(SB_URL+'/storage/v1/object/fotos/'+fname,{
+      method:'DELETE',
+      headers:{'apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY}
+    }).catch(e=>console.warn('RA-Foto löschen fehlgeschlagen:',e));
+  }
+}
+function raOlb(pos,idx,fi){
+  const url=gs(pos).restarbeiten[idx]?.fotos[fi];
+  if(!url)return;
+  document.getElementById('lbi').src=url;
+  document.getElementById('lb').classList.add('on');
+}
+function expRest(){
+  const now=new Date();
+  const d=now.toLocaleDateString('de-DE');
+  let rows=[];
+  DATA.forEach(sec=>{
+    sec.subsections.forEach(sub=>{
+      sub.items.forEach(item=>{
+        const s=gs(item.pos);
+        if(!s.restarbeiten||!s.restarbeiten.length)return;
+        s.restarbeiten.forEach(r=>{
+          raEnsure(r);
+          if(!r.txt)return;
+          rows.push({
+            geschoss:sec.label, bereich:sub.bez, pos:item.pos, bez:item.bez.trim(),
+            txt:r.txt, done:r.done, ersteller:r.ersteller, erstelltAm:r.erstelltAm,
+            erledigtVon:r.erledigtVon, erledigtAm:r.erledigtAm
+          });
+        });
+      });
+    });
+  });
+  if(rows.length===0){alert('Keine Restarbeiten erfasst.');return;}
+  let lastG='',lastB='',tableRows='';
+  rows.forEach((r,i)=>{
+    if(r.geschoss!==lastG){
+      if(lastG!=='')tableRows+='<tr><td colspan="6" style="height:10px;background:#f5f3f0;border:none"></td></tr>';
+      tableRows+=`<tr><td colspan="6" style="background:#2d2926;color:#c8a882;font-weight:700;font-size:13px;padding:7px 10px;letter-spacing:1px">${r.geschoss}</td></tr>`;
+      lastG=r.geschoss; lastB='';
+    }
+    if(r.bereich!==lastB){
+      tableRows+=`<tr><td colspan="6" style="background:#eeecea;color:#6b5040;font-weight:700;font-size:12px;padding:4px 10px;border-left:3px solid #c8a882">${r.bereich}</td></tr>`;
+      lastB=r.bereich;
+    }
+    const status=r.done?'<span style="color:#3a7a3a;font-weight:700">✓ Erledigt</span>':'<span style="color:#c0392b;font-weight:700">● Offen</span>';
+    tableRows+=`<tr style="background:${i%2===0?'#fff':'#faf9f7'}">
+      <td style="padding:5px 8px;font-size:10px;color:#9a9a9a;white-space:nowrap">${r.pos}</td>
+      <td style="padding:5px 8px;font-size:12px;font-weight:700">${r.bez}</td>
+      <td style="padding:5px 8px;font-size:12px">${r.txt}</td>
+      <td style="padding:5px 8px;font-size:11px;text-align:center">${status}</td>
+      <td style="padding:5px 8px;font-size:10px;color:#6b5040">${r.ersteller||''}${r.erstelltAm?' · '+raFmtTs(r.erstelltAm):''}</td>
+      <td style="padding:5px 8px;font-size:10px;color:#3a7a3a">${r.erledigtVon||''}${r.erledigtAm?' · '+raFmtTs(r.erledigtAm):''}</td>
+    </tr>`;
+  });
+  const offen=rows.filter(r=>!r.done).length;
+  const html=`<!DOCTYPE html><html lang="de"><head><meta charset="UTF-8">
+<title>Restarbeitenliste Berlin Upbeat – ${d}</title>
+<style>body{font-family:Arial Narrow,Arial,sans-serif;margin:0;padding:20px;color:#2d2926;}
+.kpc{display:flex;justify-content:space-between;align-items:flex-start;border-bottom:3px solid #6b5040;padding-bottom:12px;margin-bottom:20px;}
+.logo{font-size:22px;font-weight:700;letter-spacing:4px;color:#2d2926;}
+.logo small{display:block;font-size:11px;letter-spacing:2px;color:#9a9a9a;font-weight:400;}
+.meta{text-align:right;font-size:12px;color:#9a9a9a;line-height:1.6;}
+.meta strong{display:block;font-size:15px;color:#2d2926;font-weight:700;}
+table{width:100%;border-collapse:collapse;font-family:Arial Narrow,Arial,sans-serif;}
+th{background:#2d2926;color:#c8a882;font-size:11px;padding:7px 8px;text-align:left;font-weight:700;letter-spacing:0.5px;}
+td{border-bottom:1px solid #eeecea;vertical-align:middle;}
+.sig{margin-top:40px;display:flex;gap:60px;}
+.sig-box{flex:1;}
+.sig-line{border-top:1px solid #2d2926;padding-top:6px;font-size:11px;color:#9a9a9a;margin-top:40px;}
+@media print{body{padding:10px;}button{display:none!important;}}</style></head><body>
+<div class="kpc">
+  <div class="logo">KPC <small>GMBH</small></div>
+  <div class="meta"><strong>Restarbeitenliste</strong>Projekt: Berlin Upbeat<br>Datum: ${d}<br>Dok.-Nr.: RA-BU-${now.toISOString().slice(0,10).replace(/-/g,'')}</div>
+</div>
+<p style="margin-bottom:16px;font-size:13px">Gesamt: <strong>${rows.length}</strong> Restarbeiten &nbsp;|&nbsp; Offen: <strong style="color:#c0392b">${offen}</strong> &nbsp;|&nbsp; Erledigt: <strong style="color:#3a7a3a">${rows.length-offen}</strong></p>
+<table><thead><tr>
+  <th>Pos.</th><th>Gerät</th><th>Restarbeit</th><th>Status</th><th>Erstellt</th><th>Erledigt</th>
+</tr></thead><tbody>${tableRows}</tbody></table>
+<div class="sig">
+  <div class="sig-box"><div class="sig-line">Datum / Unterschrift KPC GmbH</div></div>
+  <div class="sig-box"><div class="sig-line">Datum / Unterschrift Auftraggeber</div></div>
+</div>
+<div style="margin-top:16px;text-align:center">
+  <button onclick="window.print()" style="padding:10px 24px;background:#5b4c8a;color:#fff;border:none;border-radius:4px;font-size:13px;cursor:pointer;font-family:Arial Narrow,Arial,sans-serif">Drucken / Als PDF speichern</button>
+</div></body></html>`;
+  const w=window.open('','_blank');
+  w.document.write(html);
+  w.document.close();
+}
 
 // INIT
 buildTabs();
