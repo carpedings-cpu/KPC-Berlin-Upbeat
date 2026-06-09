@@ -188,7 +188,8 @@ select.fs option{background:var(--anthrazit);}
   resize:none;min-height:32px;font-family:Arial Narrow,Arial,sans-serif;}
 .anm:focus{outline:none;border-color:var(--braun);}
 
-.rasec{margin-top:8px;border-top:1px dashed var(--border);padding-top:6px;}
+.rasec{margin-top:8px;border-top:1px dashed var(--border);padding-top:6px;display:none;}
+.rasec.show{display:block;}
 .rahd{display:flex;align-items:center;gap:6px;font-size:11px;font-weight:700;color:var(--braun);
   text-transform:uppercase;letter-spacing:0.5px;margin-bottom:4px;}
 .rahd .rai{margin-left:auto;font-size:10px;color:var(--accent2);font-weight:400;text-transform:none;letter-spacing:0;}
@@ -224,6 +225,29 @@ select.fs option{background:var(--anthrazit);}
   border:none;border-radius:50%;width:16px;height:16px;font-size:9px;
   display:flex;align-items:center;justify-content:center;cursor:pointer;line-height:1;}
 
+
+/* LOGIN-OVERLAY */
+.login-overlay{position:fixed;inset:0;background:var(--anthrazit);z-index:9000;
+  display:flex;align-items:center;justify-content:center;padding:20px;}
+.login-box{background:#fff;border-radius:10px;padding:28px 24px;width:100%;max-width:320px;
+  box-shadow:0 8px 32px rgba(0,0,0,.4);}
+.login-box h2{font-size:18px;font-weight:700;color:var(--anthrazit);margin-bottom:4px;letter-spacing:1px;}
+.login-box p{font-size:12px;color:var(--accent2);margin-bottom:18px;line-height:1.5;}
+.login-inp{width:100%;padding:12px 14px;border:2px solid var(--border);border-radius:var(--r);
+  font-size:22px;font-weight:700;font-family:Arial Narrow,Arial,sans-serif;
+  color:var(--anthrazit);text-align:center;letter-spacing:4px;text-transform:uppercase;outline:none;}
+.login-inp:focus{border-color:var(--braun);}
+.login-btn{width:100%;margin-top:14px;padding:12px;background:var(--braun);color:#fff;
+  border:none;border-radius:var(--r);font-size:14px;font-weight:700;cursor:pointer;
+  font-family:Arial Narrow,Arial,sans-serif;letter-spacing:1px;}
+.login-btn:active{background:var(--anthrazit);}
+.login-hint{font-size:10px;color:var(--accent2);text-align:center;margin-top:10px;}
+/* KÜRZEL-BADGE im Header */
+.kuerzel-badge{display:inline-flex;align-items:center;gap:5px;background:rgba(255,255,255,.12);
+  border:1px solid rgba(255,255,255,.2);border-radius:12px;padding:2px 9px;
+  font-size:11px;font-weight:700;color:#fff;cursor:pointer;letter-spacing:0.5px;
+  -webkit-tap-highlight-color:transparent;margin-left:8px;}
+.kuerzel-badge:active{background:rgba(255,255,255,.2);}
 /* LIGHTBOX */
 .lb{display:none;position:fixed;inset:0;background:rgba(0,0,0,.92);z-index:999;
   align-items:center;justify-content:center;}
@@ -273,6 +297,17 @@ select.fs option{background:var(--anthrazit);}
 </head>
 <body>
 
+<div id="loginOverlay" class="login-overlay">
+  <div class="login-box">
+    <h2>KPC GMBH</h2>
+    <p>Berlin Upbeat &ndash; Leistungsfeststellung<br>Bitte Kürzel eingeben um fortzufahren.</p>
+    <input type="text" id="loginInp" class="login-inp" maxlength="5" placeholder="Kürzel"
+      autocomplete="off" autocorrect="off" autocapitalize="characters" spellcheck="false"
+      onkeydown="if(event.key==='Enter')doLogin()">
+    <button class="login-btn" onclick="doLogin()">Los geht's &#8594;</button>
+    <div class="login-hint">Kürzel wird lokal gespeichert &ndash; einmalige Eingabe pro Gerät</div>
+  </div>
+</div>
 <header>
   <div class="h-top">
     <div class="logo">KPC <small>GMBH</small></div>
@@ -289,7 +324,7 @@ select.fs option{background:var(--anthrazit);}
     <span class="sp"><span class="sd dok"></span>Vollst&#228;ndig: <strong id="cD">0</strong></span>
     <span class="sp"><span class="sd dop"></span>Offen/Teilw.: <strong id="cO">0</strong></span>
     <span class="sp">Gesamt: <strong id="cT">0</strong></span>
-    <span class="sp" style="margin-left:auto" id="lastEditWrap">Zuletzt bearbeitet: <strong id="lastEdit">–</strong></span>
+    <span class="sp" style="margin-left:auto" id="lastEditWrap">Zuletzt bearbeitet: <strong id="lastEdit">–</strong></span><span class="kuerzel-badge" id="kuerzelBadge" onclick="changeKuerzel()" title="Kürzel ändern"></span>
   </div>
 </header>
 
@@ -314,6 +349,7 @@ select.fs option{background:var(--anthrazit);}
 </div>
 
 <div class="fab-bar">
+  <label style="display:flex;align-items:center;gap:6px;background:#fff;border:1px solid var(--border);border-radius:24px;padding:8px 13px;font-size:12px;font-weight:700;color:var(--anthrazit);cursor:pointer;box-shadow:0 2px 8px rgba(0,0,0,.12);-webkit-tap-highlight-color:transparent"><input type="checkbox" id="onlyDelivered" style="width:16px;height:16px;accent-color:var(--braun)">nur gelief.</label>
   <button class="fab-mini fab-primary" onclick="expKunde(false)" title="Kundenbericht ohne Fotos">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="17" height="17"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/><path d="M16 13H8M16 17H8M10 9H8"/></svg>
     <span class="fab-label">Bericht</span>
@@ -333,7 +369,8 @@ select.fs option{background:var(--anthrazit);}
   </button>
   
 </div>
-<input type="file" id="fi" accept="image/*" style="display:none">
+<input type="file" id="fi" accept="image/*" capture="environment" style="display:none">
+<input type="file" id="fiGal" accept="image/*" style="display:none">
 <input type="file" id="pi" accept=".pdf,.doc,.docx" style="display:none">
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
@@ -344,6 +381,36 @@ const DATA = [{"pos":"01.","bez":"Untergeschoss","label":"UG","subsections":[{"p
 
 const ST={};
 const NOTE_TIMERS={};
+let KUERZEL = '';
+
+function initLogin(){
+  const saved = localStorage.getItem('kpc_kuerzel_bu');
+  if(saved && saved.trim()){
+    KUERZEL = saved.trim().toUpperCase();
+    document.getElementById('loginOverlay').style.display = 'none';
+    document.getElementById('kuerzelBadge').textContent = '👤 ' + KUERZEL;
+  } else {
+    document.getElementById('loginOverlay').style.display = 'flex';
+    setTimeout(()=>document.getElementById('loginInp').focus(), 100);
+  }
+}
+function doLogin(){
+  const val = document.getElementById('loginInp').value.trim().toUpperCase();
+  if(!val){ document.getElementById('loginInp').focus(); return; }
+  KUERZEL = val;
+  localStorage.setItem('kpc_kuerzel_bu', KUERZEL);
+  document.getElementById('loginOverlay').style.display = 'none';
+  document.getElementById('kuerzelBadge').textContent = '👤 ' + KUERZEL;
+}
+function changeKuerzel(){
+  if(!confirm('Kürzel ändern?')) return;
+  localStorage.removeItem('kpc_kuerzel_bu');
+  KUERZEL = '';
+  document.getElementById('loginInp').value = '';
+  document.getElementById('loginOverlay').style.display = 'flex';
+  setTimeout(()=>document.getElementById('loginInp').focus(), 100);
+}
+
 function sp(p){return p.replace(/\./g,'_');}
 
 // Save with debounce to prevent race conditions
@@ -445,13 +512,13 @@ function buildPanels(){
     <div class="ck ck-ew" id="Kew${id}" onclick="tc('${item.pos}','ew')"><span class="ck-lbl"><span class="cki">&#9675;</span>&nbsp;Eingewiesen</span><span class="ck-ts" id="Tew${id}"></span></div>
   </div>
   <div class="fsec">
-    <button class="fbtn" id="FB${id}" onclick="trf('${item.pos}')">&#128247; Foto</button>
+    <button class="fbtn" id="FB${id}" onclick="trf('${item.pos}',this)">&#128247; Foto</button>
     <button class="fbtn" style="background:#4a3a28;margin-left:6px" onclick="trpdf('${item.pos}',this)">&#128196; Protokoll</button>
     <div class="fgrid" id="FG${id}"></div>
     <div class="pgrid" id="PG${id}"></div>
   </div>
   <textarea class="anm" rows="1" placeholder="Anmerkung &#8230;" oninput="autoR(this);gs('${item.pos}').note=this.value;rc('${item.pos}');clearTimeout(NOTE_TIMERS['${item.pos}']);NOTE_TIMERS['${item.pos}']=setTimeout(()=>savePos('${item.pos}'),1500)"></textarea>
-  <div class="rasec">
+  <div class="rasec" id="RASEC${id}">
     <div class="rahd">&#128203; Restarbeiten <span class="rai" id="RAI${id}"></span></div>
     <div id="RA${id}"></div>
   </div>
@@ -484,23 +551,24 @@ function tgB(h){
 }
 
 // TOGGLE CHECK
-function tsFmt(iso){
+function tsFmt(iso, von){
   if(!iso)return'';
   const d=new Date(iso);
-  return d.toLocaleDateString('de-DE',{day:'2-digit',month:'2-digit',year:'2-digit'})
+  const dt=d.toLocaleDateString('de-DE',{day:'2-digit',month:'2-digit',year:'2-digit'})
     +' '+d.toLocaleTimeString('de-DE',{hour:'2-digit',minute:'2-digit'});
+  return von ? von+' · '+dt : dt;
 }
 function tc(pos,f){
   const s=gs(pos);
   s[f]=!s[f];
-  if(s[f]) s.ts[f]=new Date().toISOString();
-  else delete s.ts[f];
+  if(s[f]){ s.ts[f]=new Date().toISOString(); if(KUERZEL) s.ts[f+'_von']=KUERZEL; }
+  else { delete s.ts[f]; delete s.ts[f+'_von']; }
   const id=sp(pos);
   const el=document.getElementById('K'+f+id);
   if(el){el.classList.toggle('on',s[f]);el.querySelector('.cki').innerHTML=s[f]?'&#10003;':'&#9675;';}
   const tsEl=document.getElementById('T'+f+id);
-  if(tsEl) tsEl.textContent=s[f]?tsFmt(s.ts[f]):'';
-  rc(pos);upStats();savePos(pos);
+  if(tsEl) tsEl.textContent=s[f]?tsFmt(s.ts[f], s.ts[f+'_von']):'';
+  rc(pos);updRaVis(pos);upStats();savePos(pos);
 }
 
 function rc(pos){
@@ -529,7 +597,28 @@ function updProg(pos){
 }
 
 // FOTO
-function trf(pos){FPOS=pos;const fi=document.getElementById('fi');fi.value='';fi.click();}
+function trf(pos,btn){
+  FPOS=pos;
+  let menu=document.getElementById('fsrcMenu');
+  if(!menu){
+    menu=document.createElement('div');
+    menu.id='fsrcMenu';
+    menu.className='ptype-menu';
+    menu.innerHTML='<div class="ptype-item" onclick="selectFsrc(\'cam\')">&#128247; Kamera aufnehmen</div><div class="ptype-item" onclick="selectFsrc(\'gal\')">&#128444; Aus Galerie w&#228;hlen</div>';
+    document.body.appendChild(menu);
+    document.addEventListener('click',e=>{if(!e.target.closest('#fsrcMenu')&&!e.target.closest('.fbtn'))menu.classList.remove('open');});
+  }
+  const r=btn.getBoundingClientRect();
+  menu.style.top=(r.bottom+window.scrollY+4)+'px';
+  menu.style.left=(r.left+window.scrollX)+'px';
+  menu.classList.add('open');
+}
+function selectFsrc(src){
+  document.getElementById('fsrcMenu')?.classList.remove('open');
+  const inp=src==='cam'?document.getElementById('fi'):document.getElementById('fiGal');
+  inp.value='';
+  inp.click();
+}
 
 // Bildkomprimierung - HEIC-sicher mit Timeout
 async function tryCompressImage(file){
@@ -563,7 +652,7 @@ async function tryCompressImage(file){
   });
 }
 
-document.getElementById('fi').addEventListener('change',async function(e){
+async function handleFotoUpload(e){
   const file=e.target.files[0];
   if(!file||!FPOS)return;
   showLoader('Foto wird komprimiert...');
@@ -606,7 +695,9 @@ document.getElementById('fi').addEventListener('change',async function(e){
       : 'Foto-Upload fehlgeschlagen.';
     alert(msg);
   }
-});
+}
+document.getElementById('fi').addEventListener('change',handleFotoUpload);
+document.getElementById('fiGal').addEventListener('change',handleFotoUpload);
 function fotoTimestamp(src){
   // Aus URL/Filename Date.now() extrahieren -> formatiertes Datum
   const m = src.match(/_(\d{12,14})\./);
@@ -750,7 +841,7 @@ function restoreUI() {
         el.classList.add('on');
         el.querySelector('.cki').innerHTML = '&#10003;';
         const tsEl = document.getElementById('T'+f+id);
-        if(tsEl && s.ts && s.ts[f]) tsEl.textContent = tsFmt(s.ts[f]);
+        if(tsEl && s.ts && s.ts[f]) tsEl.textContent = tsFmt(s.ts[f], s.ts[f+'_von']);
       }
     });
     // Restore card color
@@ -762,8 +853,8 @@ function restoreUI() {
     if(anm && s.note) { anm.value = s.note; autoR(anm); }
     // Restore fotos
     if(s.fotos && s.fotos.length) updFG(pos);
-    // Restore restarbeiten
-    updRA(pos);
+    // Restore restarbeiten (nur sichtbar wenn geliefert+montiert)
+    updRaVis(pos);
     // Restore protokolle
     if(s.pdfs && s.pdfs.length) updPG(pos);
     // Restore progress
@@ -812,7 +903,8 @@ function expKunde(withFotos=false){
     sec.subsections.forEach(sub=>{
       sub.items.forEach(item=>{
         const s=gs(item.pos);
-        if(!s.g)return; // only delivered items
+        const onlyDelivered2 = document.getElementById('onlyDelivered')?.checked;
+        if(onlyDelivered2 && !s.g)return;
         rows.push({
           geschoss:sec.label,
           bereich:sub.bez,
@@ -830,7 +922,8 @@ function expKunde(withFotos=false){
     });
   });
 
-  if(rows.length===0){alert('Keine Positionen mit Status Geliefert vorhanden.');return;}
+  const onlyDelivered = document.getElementById('onlyDelivered')?.checked;
+  if(rows.length===0){alert(onlyDelivered?'Keine gelieferten Positionen vorhanden.':'Keine Positionen vorhanden.');return;}
 
   // Build HTML report for customer
   let lastG='',lastB='';
@@ -845,10 +938,10 @@ function expKunde(withFotos=false){
       tableRows+=`<tr><td colspan="9" style="background:#eeecea;color:#6b5040;font-weight:700;font-size:12px;padding:5px 10px;border-left:3px solid #c8a882">${r.bereich}</td></tr>`;
       lastB=r.bereich;
     }
-    const tsShort=iso=>{if(!iso)return'';const d=new Date(iso);return d.toLocaleDateString('de-DE',{day:'2-digit',month:'2-digit',year:'2-digit'});};
+    const tsShort=(iso,von)=>{if(!iso)return'';const d=new Date(iso);const dt=d.toLocaleDateString('de-DE',{day:'2-digit',month:'2-digit',year:'2-digit'});return von?von+' '+dt:dt;};
     const chk=(v,f)=>{
       if(!v)return'<span style="color:#ccc">&#8211;</span>';
-      const dt=tsShort(r.ts&&r.ts[f]);
+      const dt=tsShort(r.ts&&r.ts[f], r.ts&&r.ts[f+'_von']);
       return '<span style="color:#3a7a3a;font-weight:700">&#10003;</span>'+(dt?'<br><span style="font-size:8.5px;color:#9a9a9a;font-weight:400">'+dt+'</span>':'');
     };
     tableRows+=`<tr style="background:${i%2===0?'#fff':'#faf9f7'}">
@@ -1104,7 +1197,7 @@ setInterval(async () => {
           const el = document.getElementById('K'+f+id);
           if(el) { el.classList.toggle('on', ST[row.pos][f]); el.querySelector('.cki').innerHTML = ST[row.pos][f]?'&#10003;':'&#9675;'; }
           const tsEl = document.getElementById('T'+f+id);
-          if(tsEl) tsEl.textContent = (ST[row.pos][f] && ST[row.pos].ts && ST[row.pos].ts[f]) ? tsFmt(ST[row.pos].ts[f]) : '';
+          if(tsEl) tsEl.textContent = (ST[row.pos][f] && ST[row.pos].ts && ST[row.pos].ts[f]) ? tsFmt(ST[row.pos].ts[f], ST[row.pos].ts[f+'_von']) : '';
         });
         const card = document.getElementById('C'+id);
         const st = ist(row.pos);
@@ -1112,12 +1205,10 @@ setInterval(async () => {
         const anm = card ? card.querySelector('.anm') : null;
         if(anm && anm !== document.activeElement) anm.value = ST[row.pos].note;
         updProg(row.pos);
-        // Restarbeiten nur rendern wenn diese Karte nicht gerade fokussiert ist
-        if(restChanged){
-          const card2 = document.getElementById('C'+row.pos.replace(/\./g,'_'));
-          const tippt = card2 && card2.contains(document.activeElement);
-          if(!tippt) updRA(row.pos);
-        }
+        // Restarbeiten-Sichtbarkeit (g+m) immer prüfen; Inhalt nur rendern wenn nicht fokussiert
+        const card2 = document.getElementById('C'+row.pos.replace(/\./g,'_'));
+        const tippt = card2 && card2.contains(document.activeElement);
+        if(!tippt) updRaVis(row.pos);
       }
     });
     updLastEdit(newest);
@@ -1697,6 +1788,15 @@ function raEnsure(r){
   if(!Array.isArray(r.fotos)) r.fotos=[];
   return r;
 }
+function updRaVis(pos){
+  const id=sp(pos);
+  const s=gs(pos);
+  const sec=document.getElementById('RASEC'+id);
+  if(!sec)return;
+  const show = s.g;
+  sec.classList.toggle('show', show);
+  if(show) updRA(pos);
+}
 function updRA(pos){
   const id=sp(pos);
   const s=gs(pos);
@@ -1989,6 +2089,7 @@ td{border-bottom:1px solid #eeecea;vertical-align:middle;}
 }
 
 // INIT
+initLogin();
 buildTabs();
 buildPanels();
 loadState().then(() => { restoreUI(); upStats(); });
